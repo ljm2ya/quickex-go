@@ -1,0 +1,119 @@
+# Test files (contain hardcoded private keys and API credentials)
+*_test.go
+*test*.go
+test_*.go
+*Test*.go
+
+# Test directories
+test/
+tests/
+testing/
+
+# Private keys and sensitive files
+*.pem
+*.key
+*.p8
+*.json
+private/
+secrets/
+keys/
+credentials/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Go specific
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+coverage.txt
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Dependency directories
+vendor/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build artifacts
+build/
+dist/
+bin/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Example API credentials (for reference)
+!example_credentials.txt
+!README.md
+
+# Documentation build files
+docs/_build/
+site/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Runtime files
+*.pid
+*.sock
+
+# Configuration files that might contain secrets
+config.json
+config.yaml
+config.yml
+settings.json
+settings.yaml
+settings.yml
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Cache directories
+.cache/
+node_modules/
+
+# Local development files
+local_*
+dev_*
+debug_*
