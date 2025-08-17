@@ -114,7 +114,10 @@ type Ticker struct {
 }
 
 type Account struct {
-	Assets map[string]*Wallet
+	CrossBalance   float64
+	CrossUrlProfit float64
+	Assets         map[string]*Wallet
+	Positions      map[string]*Position
 }
 
 type PositionSide string
@@ -124,6 +127,19 @@ const (
 	SHORT PositionSide = "SHORT"
 	BOTH  PositionSide = "BOTH"
 )
+
+type Position struct {
+	Symbol         string
+	Side           PositionSide
+	Amount         float64
+	UrlProfit      float64
+	IsolatedMargin float64
+	Notional       float64
+	IsolatedWallet float64
+	InitialMargin  float64
+	MaintMargin    float64
+	UpdatedTime    time.Time
+}
 
 type OrderFill struct {
 	Price       decimal.Decimal

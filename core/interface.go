@@ -17,7 +17,7 @@ type PrivateClient interface {
 	Connect(context.Context) (int64, error) // delta timestamp of local time - server time / POS means server time is slower or same NEG means server time is faster
 	Close() error
 
-	FetchBalance(asset string, includeLocked bool) (decimal.Decimal, error)
+	FetchBalance(asset string, includeLocked bool, futuresPosition bool) (decimal.Decimal, error)
 	FetchOrder(symbol, orderId string) (*OrderResponseFull, error)
 
 	LimitBuy(symbol string, quantity, price decimal.Decimal, tif string) (*OrderResponse, error)

@@ -26,7 +26,10 @@ func (c *BybitClient) GetBalance(asset string, includeLocked bool) (float64, err
 }
 
 // FetchBalance implements core.PrivateClient interface
-func (c *BybitClient) FetchBalance(asset string, includeLocked bool) (decimal.Decimal, error) {
+func (c *BybitClient) FetchBalance(asset string, includeLocked bool, futuresPosition bool) (decimal.Decimal, error) {
+	if futuresPosition {
+		return decimal.Zero, fmt.Errorf("Get Futures Position: Not futures exchange")
+	}
 	balance, err := c.GetBalance(asset, includeLocked)
 	if err != nil {
 		return decimal.Zero, err

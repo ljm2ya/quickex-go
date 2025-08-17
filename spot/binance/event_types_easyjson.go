@@ -17,7 +17,129 @@ var (
 	_ easyjson.Marshaler
 )
 
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance(in *jlexer.Lexer, out *wsTickerArr) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance(in *jlexer.Lexer, out *wsTickerStream) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "e":
+			out.EventType = string(in.String())
+		case "u":
+			out.UpdateID = int64(in.Int64())
+		case "E":
+			out.EventTime = int64(in.Int64())
+		case "T":
+			out.TransactionTime = int64(in.Int64())
+		case "s":
+			out.Symbol = string(in.String())
+		case "b":
+			out.BestBidPrice = string(in.String())
+		case "B":
+			out.BestBidQty = string(in.String())
+		case "a":
+			out.BestAskPrice = string(in.String())
+		case "A":
+			out.BestAskQty = string(in.String())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance(out *jwriter.Writer, in wsTickerStream) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"e\":"
+		out.RawString(prefix[1:])
+		out.String(string(in.EventType))
+	}
+	{
+		const prefix string = ",\"u\":"
+		out.RawString(prefix)
+		out.Int64(int64(in.UpdateID))
+	}
+	{
+		const prefix string = ",\"E\":"
+		out.RawString(prefix)
+		out.Int64(int64(in.EventTime))
+	}
+	{
+		const prefix string = ",\"T\":"
+		out.RawString(prefix)
+		out.Int64(int64(in.TransactionTime))
+	}
+	{
+		const prefix string = ",\"s\":"
+		out.RawString(prefix)
+		out.String(string(in.Symbol))
+	}
+	{
+		const prefix string = ",\"b\":"
+		out.RawString(prefix)
+		out.String(string(in.BestBidPrice))
+	}
+	{
+		const prefix string = ",\"B\":"
+		out.RawString(prefix)
+		out.String(string(in.BestBidQty))
+	}
+	{
+		const prefix string = ",\"a\":"
+		out.RawString(prefix)
+		out.String(string(in.BestAskPrice))
+	}
+	{
+		const prefix string = ",\"A\":"
+		out.RawString(prefix)
+		out.String(string(in.BestAskQty))
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v wsTickerStream) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v wsTickerStream) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *wsTickerStream) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *wsTickerStream) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance(l, v)
+}
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance1(in *jlexer.Lexer, out *wsTickerArr) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		in.Skip()
@@ -45,7 +167,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance(in *jlexer
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance(out *jwriter.Writer, in wsTickerArr) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance1(out *jwriter.Writer, in wsTickerArr) {
 	if in == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
 		out.RawString("null")
 	} else {
@@ -63,27 +185,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance(out *jwrit
 // MarshalJSON supports json.Marshaler interface
 func (v wsTickerArr) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance1(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsTickerArr) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance1(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsTickerArr) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance1(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsTickerArr) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance1(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance1(in *jlexer.Lexer, out *wsTicker) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance2(in *jlexer.Lexer, out *wsTicker) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -122,7 +244,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance1(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance1(out *jwriter.Writer, in wsTicker) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance2(out *jwriter.Writer, in wsTicker) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -157,27 +279,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance1(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v wsTicker) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance1(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance2(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsTicker) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance1(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance2(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsTicker) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance1(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance2(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsTicker) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance1(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance2(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance2(in *jlexer.Lexer, out *wsSymbolInfo) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance3(in *jlexer.Lexer, out *wsSymbolInfo) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -349,7 +471,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance2(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance2(out *jwriter.Writer, in wsSymbolInfo) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance3(out *jwriter.Writer, in wsSymbolInfo) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -509,27 +631,139 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance2(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v wsSymbolInfo) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance2(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance3(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsSymbolInfo) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance2(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance3(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsSymbolInfo) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance2(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance3(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsSymbolInfo) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance2(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance3(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance3(in *jlexer.Lexer, out *wsRateLimitWithCount) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance4(in *jlexer.Lexer, out *wsSubscribeRequest) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "method":
+			out.Method = string(in.String())
+		case "params":
+			if in.IsNull() {
+				in.Skip()
+				out.Params = nil
+			} else {
+				in.Delim('[')
+				if out.Params == nil {
+					if !in.IsDelim(']') {
+						out.Params = make([]string, 0, 4)
+					} else {
+						out.Params = []string{}
+					}
+				} else {
+					out.Params = (out.Params)[:0]
+				}
+				for !in.IsDelim(']') {
+					var v19 string
+					v19 = string(in.String())
+					out.Params = append(out.Params, v19)
+					in.WantComma()
+				}
+				in.Delim(']')
+			}
+		case "id":
+			out.ID = int(in.Int())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance4(out *jwriter.Writer, in wsSubscribeRequest) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"method\":"
+		out.RawString(prefix[1:])
+		out.String(string(in.Method))
+	}
+	{
+		const prefix string = ",\"params\":"
+		out.RawString(prefix)
+		if in.Params == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+			out.RawString("null")
+		} else {
+			out.RawByte('[')
+			for v20, v21 := range in.Params {
+				if v20 > 0 {
+					out.RawByte(',')
+				}
+				out.String(string(v21))
+			}
+			out.RawByte(']')
+		}
+	}
+	{
+		const prefix string = ",\"id\":"
+		out.RawString(prefix)
+		out.Int(int(in.ID))
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v wsSubscribeRequest) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance4(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v wsSubscribeRequest) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance4(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *wsSubscribeRequest) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance4(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *wsSubscribeRequest) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance4(l, v)
+}
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance5(in *jlexer.Lexer, out *wsRateLimitWithCount) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -568,7 +802,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance3(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance3(out *jwriter.Writer, in wsRateLimitWithCount) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance5(out *jwriter.Writer, in wsRateLimitWithCount) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -603,27 +837,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance3(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v wsRateLimitWithCount) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance3(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance5(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsRateLimitWithCount) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance3(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance5(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsRateLimitWithCount) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance3(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance5(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsRateLimitWithCount) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance3(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance5(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance4(in *jlexer.Lexer, out *wsRateLimit) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance6(in *jlexer.Lexer, out *wsRateLimit) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -660,7 +894,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance4(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance4(out *jwriter.Writer, in wsRateLimit) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance6(out *jwriter.Writer, in wsRateLimit) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -690,27 +924,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance4(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v wsRateLimit) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance4(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance6(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsRateLimit) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance4(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance6(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsRateLimit) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance4(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance6(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsRateLimit) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance4(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance6(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance5(in *jlexer.Lexer, out *wsOrderTradeUpdate) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance7(in *jlexer.Lexer, out *wsOrderTradeUpdate) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -771,7 +1005,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance5(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance5(out *jwriter.Writer, in wsOrderTradeUpdate) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance7(out *jwriter.Writer, in wsOrderTradeUpdate) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -861,27 +1095,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance5(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v wsOrderTradeUpdate) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance5(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance7(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsOrderTradeUpdate) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance5(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance7(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsOrderTradeUpdate) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance5(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance7(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsOrderTradeUpdate) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance5(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance7(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance6(in *jlexer.Lexer, out *wsListStatusOrder) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance8(in *jlexer.Lexer, out *wsListStatusOrder) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -916,7 +1150,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance6(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance6(out *jwriter.Writer, in wsListStatusOrder) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance8(out *jwriter.Writer, in wsListStatusOrder) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -941,27 +1175,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance6(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v wsListStatusOrder) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance6(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance8(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsListStatusOrder) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance6(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance8(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsListStatusOrder) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance6(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance8(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsListStatusOrder) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance6(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance8(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance7(in *jlexer.Lexer, out *wsListStatus) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance9(in *jlexer.Lexer, out *wsListStatus) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1016,9 +1250,9 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance7(in *jlexe
 					out.Orders = (out.Orders)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v19 wsListStatusOrder
-					(v19).UnmarshalEasyJSON(in)
-					out.Orders = append(out.Orders, v19)
+					var v22 wsListStatusOrder
+					(v22).UnmarshalEasyJSON(in)
+					out.Orders = append(out.Orders, v22)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -1033,7 +1267,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance7(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance7(out *jwriter.Writer, in wsListStatus) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance9(out *jwriter.Writer, in wsListStatus) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1094,11 +1328,11 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance7(out *jwri
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v20, v21 := range in.Orders {
-				if v20 > 0 {
+			for v23, v24 := range in.Orders {
+				if v23 > 0 {
 					out.RawByte(',')
 				}
-				(v21).MarshalEasyJSON(out)
+				(v24).MarshalEasyJSON(out)
 			}
 			out.RawByte(']')
 		}
@@ -1109,27 +1343,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance7(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v wsListStatus) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance7(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance9(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsListStatus) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance7(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance9(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsListStatus) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance7(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance9(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsListStatus) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance7(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance9(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance8(in *jlexer.Lexer, out *wsFilter) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance10(in *jlexer.Lexer, out *wsFilter) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1172,7 +1406,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance8(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance8(out *jwriter.Writer, in wsFilter) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance10(out *jwriter.Writer, in wsFilter) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1217,27 +1451,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance8(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v wsFilter) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance8(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance10(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsFilter) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance8(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance10(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsFilter) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance8(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance10(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsFilter) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance8(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance10(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance9(in *jlexer.Lexer, out *wsExternalLockUpdate) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance11(in *jlexer.Lexer, out *wsExternalLockUpdate) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1276,7 +1510,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance9(in *jlexe
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance9(out *jwriter.Writer, in wsExternalLockUpdate) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance11(out *jwriter.Writer, in wsExternalLockUpdate) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1311,27 +1545,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance9(out *jwri
 // MarshalJSON supports json.Marshaler interface
 func (v wsExternalLockUpdate) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance9(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance11(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsExternalLockUpdate) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance9(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance11(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsExternalLockUpdate) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance9(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance11(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsExternalLockUpdate) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance9(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance11(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance10(in *jlexer.Lexer, out *wsExchangeInfoResult) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance12(in *jlexer.Lexer, out *wsExchangeInfoResult) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1370,9 +1604,9 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance10(in *jlex
 					out.RateLimits = (out.RateLimits)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v22 wsRateLimit
-					(v22).UnmarshalEasyJSON(in)
-					out.RateLimits = append(out.RateLimits, v22)
+					var v25 wsRateLimit
+					(v25).UnmarshalEasyJSON(in)
+					out.RateLimits = append(out.RateLimits, v25)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -1393,9 +1627,9 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance10(in *jlex
 					out.Symbols = (out.Symbols)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v23 wsSymbolInfo
-					(v23).UnmarshalEasyJSON(in)
-					out.Symbols = append(out.Symbols, v23)
+					var v26 wsSymbolInfo
+					(v26).UnmarshalEasyJSON(in)
+					out.Symbols = append(out.Symbols, v26)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -1410,7 +1644,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance10(in *jlex
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance10(out *jwriter.Writer, in wsExchangeInfoResult) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance12(out *jwriter.Writer, in wsExchangeInfoResult) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1431,11 +1665,11 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance10(out *jwr
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v24, v25 := range in.RateLimits {
-				if v24 > 0 {
+			for v27, v28 := range in.RateLimits {
+				if v27 > 0 {
 					out.RawByte(',')
 				}
-				(v25).MarshalEasyJSON(out)
+				(v28).MarshalEasyJSON(out)
 			}
 			out.RawByte(']')
 		}
@@ -1447,11 +1681,11 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance10(out *jwr
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v26, v27 := range in.Symbols {
-				if v26 > 0 {
+			for v29, v30 := range in.Symbols {
+				if v29 > 0 {
 					out.RawByte(',')
 				}
-				(v27).MarshalEasyJSON(out)
+				(v30).MarshalEasyJSON(out)
 			}
 			out.RawByte(']')
 		}
@@ -1462,27 +1696,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance10(out *jwr
 // MarshalJSON supports json.Marshaler interface
 func (v wsExchangeInfoResult) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance10(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance12(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsExchangeInfoResult) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance10(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance12(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsExchangeInfoResult) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance10(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance12(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsExchangeInfoResult) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance10(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance12(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance11(in *jlexer.Lexer, out *wsEventStreamTerminated) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance13(in *jlexer.Lexer, out *wsEventStreamTerminated) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1515,7 +1749,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance11(in *jlex
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance11(out *jwriter.Writer, in wsEventStreamTerminated) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance13(out *jwriter.Writer, in wsEventStreamTerminated) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1535,27 +1769,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance11(out *jwr
 // MarshalJSON supports json.Marshaler interface
 func (v wsEventStreamTerminated) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance11(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance13(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsEventStreamTerminated) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance11(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance13(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsEventStreamTerminated) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance11(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance13(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsEventStreamTerminated) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance11(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance13(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance12(in *jlexer.Lexer, out *wsBalanceUpdate) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance14(in *jlexer.Lexer, out *wsBalanceUpdate) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1594,7 +1828,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance12(in *jlex
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance12(out *jwriter.Writer, in wsBalanceUpdate) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance14(out *jwriter.Writer, in wsBalanceUpdate) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1629,27 +1863,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance12(out *jwr
 // MarshalJSON supports json.Marshaler interface
 func (v wsBalanceUpdate) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance12(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance14(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsBalanceUpdate) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance12(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance14(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsBalanceUpdate) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance12(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance14(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsBalanceUpdate) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance12(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance14(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance13(in *jlexer.Lexer, out *wsAccountUpdate) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance15(in *jlexer.Lexer, out *wsAccountUpdate) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1696,13 +1930,13 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance13(in *jlex
 					out.Balances = (out.Balances)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v28 struct {
+					var v31 struct {
 						Asset  string `json:"a"`
 						Free   string `json:"f"`
 						Locked string `json:"l"`
 					}
-					easyjsonDc809a28Decode(in, &v28)
-					out.Balances = append(out.Balances, v28)
+					easyjsonDc809a28Decode(in, &v31)
+					out.Balances = append(out.Balances, v31)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -1717,7 +1951,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance13(in *jlex
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance13(out *jwriter.Writer, in wsAccountUpdate) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance15(out *jwriter.Writer, in wsAccountUpdate) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1738,11 +1972,11 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance13(out *jwr
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v29, v30 := range in.Balances {
-				if v29 > 0 {
+			for v32, v33 := range in.Balances {
+				if v32 > 0 {
 					out.RawByte(',')
 				}
-				easyjsonDc809a28Encode(out, v30)
+				easyjsonDc809a28Encode(out, v33)
 			}
 			out.RawByte(']')
 		}
@@ -1753,25 +1987,25 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance13(out *jwr
 // MarshalJSON supports json.Marshaler interface
 func (v wsAccountUpdate) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance13(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance15(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v wsAccountUpdate) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance13(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance15(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *wsAccountUpdate) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance13(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance15(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *wsAccountUpdate) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance13(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance15(l, v)
 }
 func easyjsonDc809a28Decode(in *jlexer.Lexer, out *struct {
 	Asset  string `json:"a"`
@@ -1837,7 +2071,308 @@ func easyjsonDc809a28Encode(out *jwriter.Writer, in struct {
 	}
 	out.RawByte('}')
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance14(in *jlexer.Lexer, out *WsRateLimitEntry) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance16(in *jlexer.Lexer, out *WsTradeResult) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "symbol":
+			out.Symbol = string(in.String())
+		case "id":
+			out.ID = int64(in.Int64())
+		case "orderId":
+			out.OrderID = int64(in.Int64())
+		case "orderListId":
+			out.OrderListId = int(in.Int())
+		case "price":
+			out.Price = string(in.String())
+		case "qty":
+			out.Qty = string(in.String())
+		case "quoteQty":
+			out.QuoteQty = string(in.String())
+		case "commision":
+			out.Commission = string(in.String())
+		case "commissionAsset":
+			out.CommissionAsset = string(in.String())
+		case "time":
+			out.Time = int64(in.Int64())
+		case "isBuyer":
+			out.IsBuyer = bool(in.Bool())
+		case "isMaker":
+			out.IsMaker = bool(in.Bool())
+		case "isBestMatch":
+			out.IsBestMatch = bool(in.Bool())
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance16(out *jwriter.Writer, in WsTradeResult) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"symbol\":"
+		out.RawString(prefix[1:])
+		out.String(string(in.Symbol))
+	}
+	{
+		const prefix string = ",\"id\":"
+		out.RawString(prefix)
+		out.Int64(int64(in.ID))
+	}
+	{
+		const prefix string = ",\"orderId\":"
+		out.RawString(prefix)
+		out.Int64(int64(in.OrderID))
+	}
+	{
+		const prefix string = ",\"orderListId\":"
+		out.RawString(prefix)
+		out.Int(int(in.OrderListId))
+	}
+	{
+		const prefix string = ",\"price\":"
+		out.RawString(prefix)
+		out.String(string(in.Price))
+	}
+	{
+		const prefix string = ",\"qty\":"
+		out.RawString(prefix)
+		out.String(string(in.Qty))
+	}
+	{
+		const prefix string = ",\"quoteQty\":"
+		out.RawString(prefix)
+		out.String(string(in.QuoteQty))
+	}
+	{
+		const prefix string = ",\"commision\":"
+		out.RawString(prefix)
+		out.String(string(in.Commission))
+	}
+	{
+		const prefix string = ",\"commissionAsset\":"
+		out.RawString(prefix)
+		out.String(string(in.CommissionAsset))
+	}
+	{
+		const prefix string = ",\"time\":"
+		out.RawString(prefix)
+		out.Int64(int64(in.Time))
+	}
+	{
+		const prefix string = ",\"isBuyer\":"
+		out.RawString(prefix)
+		out.Bool(bool(in.IsBuyer))
+	}
+	{
+		const prefix string = ",\"isMaker\":"
+		out.RawString(prefix)
+		out.Bool(bool(in.IsMaker))
+	}
+	{
+		const prefix string = ",\"isBestMatch\":"
+		out.RawString(prefix)
+		out.Bool(bool(in.IsBestMatch))
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v WsTradeResult) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance16(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v WsTradeResult) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance16(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *WsTradeResult) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance16(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *WsTradeResult) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance16(l, v)
+}
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance17(in *jlexer.Lexer, out *WsTradeResponse) {
+	isTopLevel := in.IsStart()
+	if in.IsNull() {
+		if isTopLevel {
+			in.Consumed()
+		}
+		in.Skip()
+		return
+	}
+	in.Delim('{')
+	for !in.IsDelim('}') {
+		key := in.UnsafeFieldName(false)
+		in.WantColon()
+		if in.IsNull() {
+			in.Skip()
+			in.WantComma()
+			continue
+		}
+		switch key {
+		case "id":
+			out.ID = string(in.String())
+		case "Status":
+			out.Status = int(in.Int())
+		case "result":
+			if in.IsNull() {
+				in.Skip()
+				out.Result = nil
+			} else {
+				in.Delim('[')
+				if out.Result == nil {
+					if !in.IsDelim(']') {
+						out.Result = make([]WsTradeResult, 0, 0)
+					} else {
+						out.Result = []WsTradeResult{}
+					}
+				} else {
+					out.Result = (out.Result)[:0]
+				}
+				for !in.IsDelim(']') {
+					var v34 WsTradeResult
+					(v34).UnmarshalEasyJSON(in)
+					out.Result = append(out.Result, v34)
+					in.WantComma()
+				}
+				in.Delim(']')
+			}
+		case "rateLimits":
+			if in.IsNull() {
+				in.Skip()
+				out.RateLimits = nil
+			} else {
+				in.Delim('[')
+				if out.RateLimits == nil {
+					if !in.IsDelim(']') {
+						out.RateLimits = make([]WsRateLimitEntry, 0, 1)
+					} else {
+						out.RateLimits = []WsRateLimitEntry{}
+					}
+				} else {
+					out.RateLimits = (out.RateLimits)[:0]
+				}
+				for !in.IsDelim(']') {
+					var v35 WsRateLimitEntry
+					(v35).UnmarshalEasyJSON(in)
+					out.RateLimits = append(out.RateLimits, v35)
+					in.WantComma()
+				}
+				in.Delim(']')
+			}
+		default:
+			in.SkipRecursive()
+		}
+		in.WantComma()
+	}
+	in.Delim('}')
+	if isTopLevel {
+		in.Consumed()
+	}
+}
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance17(out *jwriter.Writer, in WsTradeResponse) {
+	out.RawByte('{')
+	first := true
+	_ = first
+	{
+		const prefix string = ",\"id\":"
+		out.RawString(prefix[1:])
+		out.String(string(in.ID))
+	}
+	{
+		const prefix string = ",\"Status\":"
+		out.RawString(prefix)
+		out.Int(int(in.Status))
+	}
+	{
+		const prefix string = ",\"result\":"
+		out.RawString(prefix)
+		if in.Result == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+			out.RawString("null")
+		} else {
+			out.RawByte('[')
+			for v36, v37 := range in.Result {
+				if v36 > 0 {
+					out.RawByte(',')
+				}
+				(v37).MarshalEasyJSON(out)
+			}
+			out.RawByte(']')
+		}
+	}
+	{
+		const prefix string = ",\"rateLimits\":"
+		out.RawString(prefix)
+		if in.RateLimits == nil && (out.Flags&jwriter.NilSliceAsEmpty) == 0 {
+			out.RawString("null")
+		} else {
+			out.RawByte('[')
+			for v38, v39 := range in.RateLimits {
+				if v38 > 0 {
+					out.RawByte(',')
+				}
+				(v39).MarshalEasyJSON(out)
+			}
+			out.RawByte(']')
+		}
+	}
+	out.RawByte('}')
+}
+
+// MarshalJSON supports json.Marshaler interface
+func (v WsTradeResponse) MarshalJSON() ([]byte, error) {
+	w := jwriter.Writer{}
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance17(&w, v)
+	return w.Buffer.BuildBytes(), w.Error
+}
+
+// MarshalEasyJSON supports easyjson.Marshaler interface
+func (v WsTradeResponse) MarshalEasyJSON(w *jwriter.Writer) {
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance17(w, v)
+}
+
+// UnmarshalJSON supports json.Unmarshaler interface
+func (v *WsTradeResponse) UnmarshalJSON(data []byte) error {
+	r := jlexer.Lexer{Data: data}
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance17(&r, v)
+	return r.Error()
+}
+
+// UnmarshalEasyJSON supports easyjson.Unmarshaler interface
+func (v *WsTradeResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance17(l, v)
+}
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance18(in *jlexer.Lexer, out *WsRateLimitEntry) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1876,7 +2411,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance14(in *jlex
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance14(out *jwriter.Writer, in WsRateLimitEntry) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance18(out *jwriter.Writer, in WsRateLimitEntry) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -1911,27 +2446,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance14(out *jwr
 // MarshalJSON supports json.Marshaler interface
 func (v WsRateLimitEntry) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance14(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance18(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v WsRateLimitEntry) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance14(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance18(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *WsRateLimitEntry) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance14(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance18(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *WsRateLimitEntry) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance14(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance18(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance15(in *jlexer.Lexer, out *WsOrderResult) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance19(in *jlexer.Lexer, out *WsOrderResult) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -1996,9 +2531,9 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance15(in *jlex
 					out.Fills = (out.Fills)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v31 WsOrderFill
-					(v31).UnmarshalEasyJSON(in)
-					out.Fills = append(out.Fills, v31)
+					var v40 WsOrderFill
+					(v40).UnmarshalEasyJSON(in)
+					out.Fills = append(out.Fills, v40)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -2013,7 +2548,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance15(in *jlex
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance15(out *jwriter.Writer, in WsOrderResult) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance19(out *jwriter.Writer, in WsOrderResult) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2099,11 +2634,11 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance15(out *jwr
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v32, v33 := range in.Fills {
-				if v32 > 0 {
+			for v41, v42 := range in.Fills {
+				if v41 > 0 {
 					out.RawByte(',')
 				}
-				(v33).MarshalEasyJSON(out)
+				(v42).MarshalEasyJSON(out)
 			}
 			out.RawByte(']')
 		}
@@ -2114,27 +2649,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance15(out *jwr
 // MarshalJSON supports json.Marshaler interface
 func (v WsOrderResult) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance15(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance19(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v WsOrderResult) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance15(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance19(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *WsOrderResult) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance15(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance19(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *WsOrderResult) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance15(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance19(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance16(in *jlexer.Lexer, out *WsOrderResponse) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance20(in *jlexer.Lexer, out *WsOrderResponse) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -2175,9 +2710,9 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance16(in *jlex
 					out.RateLimits = (out.RateLimits)[:0]
 				}
 				for !in.IsDelim(']') {
-					var v34 WsRateLimitEntry
-					(v34).UnmarshalEasyJSON(in)
-					out.RateLimits = append(out.RateLimits, v34)
+					var v43 WsRateLimitEntry
+					(v43).UnmarshalEasyJSON(in)
+					out.RateLimits = append(out.RateLimits, v43)
 					in.WantComma()
 				}
 				in.Delim(']')
@@ -2192,7 +2727,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance16(in *jlex
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance16(out *jwriter.Writer, in WsOrderResponse) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance20(out *jwriter.Writer, in WsOrderResponse) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2218,11 +2753,11 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance16(out *jwr
 			out.RawString("null")
 		} else {
 			out.RawByte('[')
-			for v35, v36 := range in.RateLimits {
-				if v35 > 0 {
+			for v44, v45 := range in.RateLimits {
+				if v44 > 0 {
 					out.RawByte(',')
 				}
-				(v36).MarshalEasyJSON(out)
+				(v45).MarshalEasyJSON(out)
 			}
 			out.RawByte(']')
 		}
@@ -2233,27 +2768,27 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance16(out *jwr
 // MarshalJSON supports json.Marshaler interface
 func (v WsOrderResponse) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance16(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance20(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v WsOrderResponse) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance16(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance20(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *WsOrderResponse) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance16(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance20(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *WsOrderResponse) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance16(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance20(l, v)
 }
-func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance17(in *jlexer.Lexer, out *WsOrderFill) {
+func easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance21(in *jlexer.Lexer, out *WsOrderFill) {
 	isTopLevel := in.IsStart()
 	if in.IsNull() {
 		if isTopLevel {
@@ -2292,7 +2827,7 @@ func easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance17(in *jlex
 		in.Consumed()
 	}
 }
-func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance17(out *jwriter.Writer, in WsOrderFill) {
+func easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance21(out *jwriter.Writer, in WsOrderFill) {
 	out.RawByte('{')
 	first := true
 	_ = first
@@ -2327,23 +2862,23 @@ func easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance17(out *jwr
 // MarshalJSON supports json.Marshaler interface
 func (v WsOrderFill) MarshalJSON() ([]byte, error) {
 	w := jwriter.Writer{}
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance17(&w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance21(&w, v)
 	return w.Buffer.BuildBytes(), w.Error
 }
 
 // MarshalEasyJSON supports easyjson.Marshaler interface
 func (v WsOrderFill) MarshalEasyJSON(w *jwriter.Writer) {
-	easyjsonDc809a28EncodeGitlabComLjm2yaFlashscalperExchangeBinance17(w, v)
+	easyjsonDc809a28EncodeGithubComLjm2yaQuickexGoSpotBinance21(w, v)
 }
 
 // UnmarshalJSON supports json.Unmarshaler interface
 func (v *WsOrderFill) UnmarshalJSON(data []byte) error {
 	r := jlexer.Lexer{Data: data}
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance17(&r, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance21(&r, v)
 	return r.Error()
 }
 
 // UnmarshalEasyJSON supports easyjson.Unmarshaler interface
 func (v *WsOrderFill) UnmarshalEasyJSON(l *jlexer.Lexer) {
-	easyjsonDc809a28DecodeGitlabComLjm2yaFlashscalperExchangeBinance17(l, v)
+	easyjsonDc809a28DecodeGithubComLjm2yaQuickexGoSpotBinance21(l, v)
 }

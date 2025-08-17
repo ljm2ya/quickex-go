@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	
+
 	"github.com/shopspring/decimal"
 )
 
@@ -132,4 +132,51 @@ func ToFloat(v any) float64 {
 		return float64(val)
 	}
 	return 0
+}
+
+func AggregateOrderRes(reses ...*OrderResponseFull) *OrderResponseFull {
+	if len(reses) == 0 {
+		return nil
+	}
+
+	// Find first non-nil as base
+	var base *OrderResponseFull
+	for _, r := range reses {
+		if r != nil {
+			base = r
+			break
+		}
+	}
+	if base == nil {
+		return nil // all nil
+	}
+	if len(reses) == 1 {
+		return base
+	}
+
+	aggregated := OrderResponseFull{
+		OrderResponse:   base.OrderResponse,
+		CommissionAsset: base.CommissionAsset,
+	}
+
+	var weightedSum decimal.Decimal
+	var totalQty decimal.Decimal
+	var totalCommission decimal.Decimal
+
+	for _, res := range reses {
+		if res == nil {
+			continue
+		}
+		weightedSum = weightedSum.Add(res.AvgPrice.Mul(res.ExecutedQty))
+		totalQty = totalQty.Add(res.ExecutedQty)
+		totalCommission = totalCommission.Add(res.Commission)
+	}
+
+	if !totalQty.IsZero() {
+		aggregated.AvgPrice = weightedSum.Div(totalQty)
+	}
+	aggregated.ExecutedQty = totalQty
+	aggregated.Commission = totalCommission
+
+	return &aggregated
 }

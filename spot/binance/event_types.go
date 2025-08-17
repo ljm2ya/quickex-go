@@ -101,6 +101,29 @@ type wsListStatus struct {
 	Orders            []wsListStatusOrder `json:"O"` // Orders
 }
 
+type WsTradeResponse struct {
+	ID         string             `json:"id"`
+	Status     int                `json"status`
+	Result     []WsTradeResult    `json:"result"`
+	RateLimits []WsRateLimitEntry `json:"rateLimits"`
+}
+
+type WsTradeResult struct {
+	Symbol          string `json:"symbol"`
+	ID              int64  `json:"id"`
+	OrderID         int64  `json:"orderId"`
+	OrderListId     int    `json:"orderListId"`
+	Price           string `json:"price"`
+	Qty             string `json:"qty"`
+	QuoteQty        string `json:"quoteQty"`
+	Commission      string `json:"commision"`
+	CommissionAsset string `json:"commissionAsset"`
+	Time            int64  `json:"time"`
+	IsBuyer         bool   `json:"isBuyer"`
+	IsMaker         bool   `json:"isMaker"`
+	IsBestMatch     bool   `json:"isBestMatch"`
+}
+
 type WsOrderResponse struct {
 	ID         string             `json:"id"`
 	Status     int                `json:"status"`

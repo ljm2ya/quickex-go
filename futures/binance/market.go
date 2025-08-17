@@ -234,7 +234,7 @@ func (b *BinanceClient) GetOrderbook(symbol string, depth int64) (*core.Orderboo
 	return ob, nil
 }
 
-func SubscribeQuotes(ctx context.Context, symbols []string, errHandler func(err error)) (map[string]chan core.Quote, error) {
+func (b *BinanceClient) SubscribeQuotes(ctx context.Context, symbols []string, errHandler func(err error)) (map[string]chan core.Quote, error) {
 	quoteChMap := make(map[string]chan core.Quote)
 	ws, _, err := websocket.DefaultDialer.Dial("wss://fstream.binance.com", nil)
 	if err != nil {
@@ -304,20 +304,18 @@ func SubscribeQuotes(ctx context.Context, symbols []string, errHandler func(err 
 				}
 			}
 
-			quote := core.Quote{
-				Symbol:   res.Symbol,
-				BidPrice: decimal.RequireFromString(res.BestBidPrice),
-				BidQty:   decimal.RequireFromString(res.BestBidQty),
-				AskPrice: decimal.RequireFromString(res.BestAskPrice),
-				AskQty:   decimal.RequireFromString(res.BestAskQty),
-				Time:     time.UnixMilli(res.EventTime),
-			}
-			// Send to the appropriate channel
 			if ch, exists := quoteChMap[res.Symbol]; exists {
 				select {
-				case ch <- quote:
+				case ch <- core.Quote{
+					Symbol:   res.Symbol,
+					BidPrice: decimal.RequireFromString(res.BestBidPrice),
+					BidQty:   decimal.RequireFromString(res.BestBidQty),
+					AskPrice: decimal.RequireFromString(res.BestAskPrice),
+					AskQty:   decimal.RequireFromString(res.BestAskQty),
+					Time:     time.UnixMilli(res.EventTime),
+				}:
 				default:
-					// Channel full, skip
+					// Channel is full, skip this update
 				}
 			}
 		}

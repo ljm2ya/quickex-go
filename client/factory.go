@@ -12,7 +12,7 @@ import (
 	"github.com/ljm2ya/quickex-go/core"
 	futuresBinance "github.com/ljm2ya/quickex-go/futures/binance"
 	futuresBybit "github.com/ljm2ya/quickex-go/futures/bybit"
-	//spotBinance "github.com/ljm2ya/quickex-go/spot/binance"
+	spotBinance "github.com/ljm2ya/quickex-go/spot/binance"
 	spotBybit "github.com/ljm2ya/quickex-go/spot/bybit"
 	//spotUpbit "github.com/ljm2ya/quickex-go/spot/upbit"
 )
@@ -79,19 +79,13 @@ func NewPrivateClient(exchange, apiKey, secret string) core.PrivateClient {
 		if err != nil {
 			panic(fmt.Errorf("failed to load Binance private key: %w", err))
 		}
-		// TODO: BinanceClient needs to implement SubscribeQuotes method
-		_ = privateKey
-		panic("Binance spot client not fully implemented")
-		//return spotBinance.NewClient(apiKey, privateKey)
+		return spotBinance.NewClient(apiKey, privateKey)
 	case string(ExchangeBinanceTestnet):
 		privateKey, err := loadED25519PrivateKey(secret)
 		if err != nil {
 			panic(fmt.Errorf("failed to load Binance testnet private key: %w", err))
 		}
-		// TODO: BinanceClient needs to implement SubscribeQuotes method
-		_ = privateKey
-		panic("Binance spot testnet client not fully implemented")
-		//return spotBinance.NewTestClient(apiKey, privateKey)
+		return spotBinance.NewTestClient(apiKey, privateKey)
 	case string(ExchangeBybit):
 		return spotBybit.NewClient(apiKey, secret)
 	case string(ExchangeUpbit):
@@ -104,13 +98,9 @@ func NewPrivateClient(exchange, apiKey, secret string) core.PrivateClient {
 func NewPublicClient(exchange string) core.PublicClient {
 	switch exchange {
 	case string(ExchangeBinance):
-		// TODO: BinanceClient needs to implement SubscribeQuotes method
-		panic("Binance spot public client not fully implemented")
-		//return spotBinance.NewClient("", ed25519.PrivateKey{})
+		return spotBinance.NewClient("", ed25519.PrivateKey{})
 	case string(ExchangeBinanceTestnet):
-		// TODO: BinanceClient needs to implement SubscribeQuotes method
-		panic("Binance spot testnet public client not fully implemented")
-		//return spotBinance.NewTestClient("", ed25519.PrivateKey{})
+		return spotBinance.NewTestClient("", ed25519.PrivateKey{})
 	case string(ExchangeBybit):
 		return spotBybit.NewClient("", "")
 	case string(ExchangeUpbit):
@@ -127,19 +117,13 @@ func NewFuturesPrivateClient(exchange, apiKey, secret string) core.PrivateClient
 		if err != nil {
 			panic(fmt.Errorf("failed to load Binance futures private key: %w", err))
 		}
-		// TODO: BinanceClient needs to implement SubscribeQuotes method
-		_ = privateKey
-		panic("Binance futures client not fully implemented")
-		//return futuresBinance.NewClient(apiKey, privateKey)
+		return futuresBinance.NewClient(apiKey, privateKey)
 	case string(ExchangeBinanceFuturesTestnet):
 		privateKey, err := loadED25519PrivateKey(secret)
 		if err != nil {
 			panic(fmt.Errorf("failed to load Binance futures testnet private key: %w", err))
 		}
-		// TODO: BinanceClient needs to implement SubscribeQuotes method
-		_ = privateKey
-		panic("Binance futures testnet client not fully implemented")
-		//return futuresBinance.NewTestClient(apiKey, privateKey)
+		return futuresBinance.NewTestClient(apiKey, privateKey)
 	case string(ExchangeBybitFutures):
 		return futuresBybit.NewClient(apiKey, secret)
 	}
@@ -150,13 +134,9 @@ func NewFuturesPrivateClient(exchange, apiKey, secret string) core.PrivateClient
 func NewFuturesPublicClient(exchange string) core.PublicClient {
 	switch exchange {
 	case string(ExchangeBinanceFutures):
-		// TODO: BinanceClient needs to implement SubscribeQuotes method
-		panic("Binance futures public client not fully implemented")
-		//return futuresBinance.NewClient("", ed25519.PrivateKey{})
+		return futuresBinance.NewClient("", ed25519.PrivateKey{})
 	case string(ExchangeBinanceFuturesTestnet):
-		// TODO: BinanceClient needs to implement SubscribeQuotes method
-		panic("Binance futures testnet public client not fully implemented")
-		//return futuresBinance.NewTestClient("", ed25519.PrivateKey{})
+		return futuresBinance.NewTestClient("", ed25519.PrivateKey{})
 	case string(ExchangeBybitFutures):
 		return futuresBybit.NewClient("", "")
 	}

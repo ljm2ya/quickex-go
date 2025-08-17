@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/shopspring/decimal"
 	"github.com/ljm2ya/quickex-go/core"
+	"github.com/shopspring/decimal"
 )
 
 func (b *BinanceClient) GetTicker(symbol string) (*core.Ticker, error) {
@@ -181,8 +181,8 @@ func (b *BinanceClient) GetOrderbook(symbol string, depth int64) (*core.Orderboo
 	return ob, nil
 }
 
-// SubscribeTickers subscribes to real-time ticker updates via WebSocket for spot markets
-func SubscribeQuotes(ctx context.Context, symbols []string, errHandler func(err error)) (map[string]chan core.Quote, error) {
+// SubscribeQuotes subscribes to real-time ticker updates via WebSocket for spot markets
+func (b *BinanceClient) SubscribeQuotes(ctx context.Context, symbols []string, errHandler func(err error)) (map[string]chan core.Quote, error) {
 	quoteChMap := make(map[string]chan core.Quote)
 	ws, _, err := websocket.DefaultDialer.Dial("wss://stream.binance.com:9443/ws/", nil)
 	if err != nil {
@@ -227,6 +227,13 @@ func SubscribeQuotes(ctx context.Context, symbols []string, errHandler func(err 
 	}
 
 	go func() {
+		defer func() {
+			// Close all channels when context is cancelled
+			for _, ch := range quoteChMap {
+				close(ch)
+			}
+			ws.Close()
+		}()
 		for {
 			select {
 			case <-ctx.Done():
@@ -235,12 +242,14 @@ func SubscribeQuotes(ctx context.Context, symbols []string, errHandler func(err 
 			default:
 			}
 			_, msg, err := ws.ReadMessage()
-			if err != nil {
-				fmt.Printf("[wsclient] WS read error: %v", err)
+			if err != nil && errHandler != nil {
+				errHandler(fmt.Errorf("WebSocket service error: %w", err))
 			}
 			var res wsTickerStream
-			if err := json.Unmarshal(msg, &res); err != nil {
-				fmt.Printf("[wsclient] Unmarshal error: %v %s", err, string(msg))
+			if err := res.UnmarshalJSON(msg); err != nil {
+				if errHandler != nil {
+					errHandler(fmt.Errorf("WebSocket unmarshal error: %w", err))
+				}
 			}
 			if ch, exists := quoteChMap[res.Symbol]; exists {
 				select {

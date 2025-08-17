@@ -39,6 +39,18 @@ func (c *BybitFuturesClient) GetBalance(asset string, includeLocked bool) (float
 	return 0, fmt.Errorf("Get Balance error: no matching balance")
 }
 
+func (c *BybitFuturesClient) GetPositionAmount(symbol string) (decimal.Decimal, error) {
+	resp, err := c.client.V5().Position().GetPositionInfo(bybit.V5GetPositionInfoParam{
+		Category: bybit.CategoryV5Linear,
+		Symbol:   &symbol,
+	})
+	if err != nil || len(resp.Result.List) == 0 {
+		return decimal.Zero, err
+	}
+	value := decimal.RequireFromString(resp.Result.List[0].PositionValue)
+	return value, nil
+}
+
 func (c *BybitFuturesClient) GetAccount() (*core.Account, error) {
 	resp, err := c.client.V5().Account().GetWalletBalance(bybit.AccountTypeV5UNIFIED, nil)
 	if err != nil || len(resp.Result.List) == 0 {
@@ -66,7 +78,14 @@ func (c *BybitFuturesClient) GetAccount() (*core.Account, error) {
 }
 
 // FetchBalance implements core.PrivateClient interface
-func (c *BybitFuturesClient) FetchBalance(asset string, includeLocked bool) (decimal.Decimal, error) {
+func (c *BybitFuturesClient) FetchBalance(asset string, includeLocked bool, futuresPosition bool) (decimal.Decimal, error) {
+	if futuresPosition {
+		pos, err := c.GetPositionAmount(asset + "USDT")
+		if err != nil {
+			return decimal.Zero, err
+		}
+		return pos, nil
+	}
 	balance, err := c.GetBalance(asset, includeLocked)
 	if err != nil {
 		return decimal.Zero, err

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shopspring/decimal"
 	"github.com/ljm2ya/quickex-go/core"
+	"github.com/shopspring/decimal"
 )
 
 func (b *BinanceClient) GetBalance(asset string, includeLocked bool) (float64, error) {
@@ -44,7 +44,10 @@ func (b *BinanceClient) GetBalance(asset string, includeLocked bool) (float64, e
 }
 
 // FetchBalance implements core.PrivateClient interface
-func (b *BinanceClient) FetchBalance(asset string, includeLocked bool) (decimal.Decimal, error) {
+func (b *BinanceClient) FetchBalance(asset string, includeLocked bool, futuresPosition bool) (decimal.Decimal, error) {
+	if futuresPosition {
+		return decimal.Zero, fmt.Errorf("Get Futures Position: Not futures exchange")
+	}
 	balance, err := b.GetBalance(asset, includeLocked)
 	if err != nil {
 		return decimal.Zero, err
