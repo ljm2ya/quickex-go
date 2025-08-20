@@ -47,8 +47,11 @@ func (c *BybitFuturesClient) GetPositionAmount(symbol string) (decimal.Decimal, 
 	if err != nil || len(resp.Result.List) == 0 {
 		return decimal.Zero, err
 	}
-	value := decimal.RequireFromString(resp.Result.List[0].PositionValue)
-	return value, nil
+	posValue, err := decimal.NewFromString(resp.Result.List[0].Size)
+	if err != nil {
+		posValue = decimal.Zero
+	}
+	return posValue, nil
 }
 
 func (c *BybitFuturesClient) GetAccount() (*core.Account, error) {

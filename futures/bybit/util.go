@@ -2,6 +2,8 @@ package bybit
 
 import (
 	"encoding/json"
+	"regexp"
+	"strings"
 
 	"github.com/shopspring/decimal"
 )
@@ -25,3 +27,18 @@ func toInt(v any) int64 {
 }
 
 // Note: toFloat function removed - now using core.ToFloat()
+func SymbolToAsset(symbol string) string {
+	// 1. Remove leading digits
+	re := regexp.MustCompile(`^[0-9]+`)
+	s := re.ReplaceAllString(symbol, "")
+
+	// 2. Ensure uppercase for consistency
+	s = strings.ToUpper(s)
+
+	// 3. Trim known suffixes (USDT, USDT-<something>)
+	if idx := strings.Index(s, "USDT"); idx != -1 {
+		return s[:idx]
+	}
+
+	return s
+}

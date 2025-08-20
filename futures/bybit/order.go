@@ -288,6 +288,11 @@ func (c *BybitFuturesClient) FetchOrder(symbol, orderId string) (*core.OrderResp
 		}
 	}
 
+	avgPrice, err := decimal.NewFromString(order.AvgPrice)
+	if err != nil {
+		avgPrice = decimal.Zero
+	}
+
 	return &core.OrderResponseFull{
 		OrderResponse: core.OrderResponse{
 			OrderID:    order.OrderID,
@@ -299,8 +304,10 @@ func (c *BybitFuturesClient) FetchOrder(symbol, orderId string) (*core.OrderResp
 			Quantity:   decimal.RequireFromString(order.Qty),
 			CreateTime: toTime(order.CreatedTime),
 		},
-		AvgPrice:    decimal.RequireFromString(order.AvgPrice),
-		ExecutedQty: decimal.RequireFromString(order.CumExecQty),
-		UpdateTime:  toTime(order.UpdatedTime),
+		AvgPrice:        avgPrice,
+		ExecutedQty:     decimal.RequireFromString(order.CumExecQty),
+		Commission:      decimal.RequireFromString(order.CumExecFee),
+		CommissionAsset: SymbolToAsset(symbol),
+		UpdateTime:      toTime(order.UpdatedTime),
 	}, nil
 }

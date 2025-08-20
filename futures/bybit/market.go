@@ -2,10 +2,13 @@ package bybit
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/hirokisan/bybit/v2"
 	"github.com/ljm2ya/quickex-go/core"
 	"github.com/shopspring/decimal"
@@ -109,83 +112,117 @@ func (c *BybitFuturesClient) FetchMarketRules(quotes []string) ([]core.MarketRul
 	return rules, nil
 }
 
+// FuturesOrderbookMessage represents the structure of Bybit futures orderbook WebSocket messages
+type FuturesOrderbookMessage struct {
+	Topic string `json:"topic"`
+	TS    int64  `json:"ts"`
+	Type  string `json:"type"`
+	Data  struct {
+		Symbol string     `json:"s"`
+		Bids   [][]string `json:"b"`
+		Asks   [][]string `json:"a"`
+		U      int64      `json:"u"`
+		Seq    int64      `json:"seq"`
+	} `json:"data"`
+	CTS int64 `json:"cts"`
+}
+
 // SubscribeQuotes implements core.PublicClient interface
+// Uses manual WebSocket implementation for better reliability
 func (c *BybitFuturesClient) SubscribeQuotes(ctx context.Context, symbols []string, errHandler func(err error)) (map[string]chan core.Quote, error) {
 	quoteChans := make(map[string]chan core.Quote)
 
-	// Create WebSocket client for public market data
-	wsClient := bybit.NewWebsocketClient()
-	wsPublic, err := wsClient.V5().Public(bybit.CategoryV5Linear)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create WebSocket public service: %w", err)
-	}
-
-	// Create channels and subscribe to orderbook for each symbol
+	// Create channels for each symbol
 	for _, symbol := range symbols {
 		quoteChan := make(chan core.Quote, 1)
 		quoteChans[symbol] = quoteChan
+	}
 
-		// Subscribe to orderbook with depth 1 to get best bid/ask
-		key := bybit.V5WebsocketPublicOrderBookParamKey{
-			Depth:  1,
-			Symbol: bybit.SymbolV5(symbol),
+	// Connect to Bybit linear/futures WebSocket
+	u, _ := url.Parse("wss://stream.bybit.com/v5/public/linear")
+	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to futures WebSocket: %w", err)
+	}
+
+	// Subscribe to orderbook for each symbol
+	for _, symbol := range symbols {
+		subMsg := map[string]interface{}{
+			"op":   "subscribe",
+			"args": []string{fmt.Sprintf("orderbook.1.%s", symbol)},
 		}
-
-		// Capture symbol for closure
-		currentSymbol := symbol
-		_, err := wsPublic.SubscribeOrderBook(key, func(response bybit.V5WebsocketPublicOrderBookResponse) error {
-			// Convert orderbook data to quote
-			if len(response.Data.Bids) > 0 && len(response.Data.Asks) > 0 {
-				bid := response.Data.Bids[0]
-				ask := response.Data.Asks[0]
-
-				quote := core.Quote{
-					Symbol:   string(response.Data.Symbol),
-					BidPrice: decimal.RequireFromString(bid.Price),
-					BidQty:   decimal.RequireFromString(bid.Size),
-					AskPrice: decimal.RequireFromString(ask.Price),
-					AskQty:   decimal.RequireFromString(ask.Size),
-					Time:     time.UnixMilli(response.TimeStamp),
-				}
-
-				// Send to the appropriate channel
-				if ch, exists := quoteChans[currentSymbol]; exists {
-					select {
-					case ch <- quote:
-					default:
-						// Channel full, skip
-					}
-				}
-			}
-			return nil
-		})
-
-		if err != nil {
+		
+		if err := conn.WriteJSON(subMsg); err != nil {
 			if errHandler != nil {
-				errHandler(fmt.Errorf("failed to subscribe to orderbook for %s: %w", symbol, err))
+				errHandler(fmt.Errorf("failed to subscribe to %s: %w", symbol, err))
 			}
 			continue
 		}
 	}
 
-	// Start the WebSocket service
+	// Start reading messages
 	go func() {
 		defer func() {
-			// Close all channels when context is cancelled
+			conn.Close()
 			for _, ch := range quoteChans {
 				close(ch)
 			}
-			wsPublic.Close()
 		}()
 
-		// Start WebSocket service
-		err := wsPublic.Run()
-		if err != nil && errHandler != nil {
-			errHandler(fmt.Errorf("WebSocket service error: %w", err))
-		}
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				_, message, err := conn.ReadMessage()
+				if err != nil {
+					if errHandler != nil {
+						errHandler(fmt.Errorf("WebSocket read error: %w", err))
+					}
+					return
+				}
 
-		// Wait for context cancellation
-		<-ctx.Done()
+				// Parse orderbook message
+				var msg FuturesOrderbookMessage
+				if err := json.Unmarshal(message, &msg); err != nil {
+					continue // Skip non-orderbook messages
+				}
+
+				// Process only orderbook data
+				if msg.Topic != "" && len(msg.Topic) > 10 && msg.Topic[:10] == "orderbook." {
+					// Extract symbol from topic (format: orderbook.1.BTCUSDT)
+					if len(msg.Topic) < 13 {
+						continue
+					}
+					symbol := msg.Topic[12:] // Skip "orderbook.1."
+					
+					// Ensure we have valid bid/ask data
+					if len(msg.Data.Bids) > 0 && len(msg.Data.Asks) > 0 {
+						bid := msg.Data.Bids[0]
+						ask := msg.Data.Asks[0]
+						
+						if len(bid) >= 2 && len(ask) >= 2 {
+							quote := core.Quote{
+								Symbol:   symbol,
+								BidPrice: decimal.RequireFromString(bid[0]),
+								BidQty:   decimal.RequireFromString(bid[1]),
+								AskPrice: decimal.RequireFromString(ask[0]),
+								AskQty:   decimal.RequireFromString(ask[1]),
+								Time:     time.UnixMilli(msg.TS),
+							}
+
+							if ch, exists := quoteChans[symbol]; exists {
+								select {
+								case ch <- quote:
+								default:
+									// Channel full, skip
+								}
+							}
+						}
+					}
+				}
+			}
+		}
 	}()
 
 	return quoteChans, nil
