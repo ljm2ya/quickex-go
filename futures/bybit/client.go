@@ -13,8 +13,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/hirokisan/bybit/v2"
-	"github.com/shopspring/decimal"
 	"github.com/ljm2ya/quickex-go/core"
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -196,12 +196,18 @@ func (c *BybitFuturesClient) afterConnect() core.WsAfterConnectFunc {
 			c.balancesMu.Unlock()
 		}
 		ticker := time.NewTicker(3 * time.Second)
+		pingTicker := time.NewTicker(20 * time.Second)
 		go func() {
 			defer ticker.Stop()
 			for {
 				select {
 				case <-c.Ctx.Done():
 					return
+				case <-pingTicker.C:
+					msg := map[string]interface{}{
+						"op": "ping",
+					}
+					ws.SendRequest(msg)
 				case <-ticker.C:
 					resp, err := c.client.V5().Account().GetWalletBalance(bybit.AccountTypeV5UNIFIED, nil)
 					if err != nil {

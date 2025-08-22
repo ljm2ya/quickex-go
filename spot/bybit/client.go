@@ -202,12 +202,18 @@ func (c *BybitClient) afterConnect() core.WsAfterConnectFunc {
 			fmt.Printf("Warning: Failed to set deposit account to UNIFIED: %v\n", err)
 		}
 		ticker := time.NewTicker(3 * time.Second)
+		pingTicker := time.NewTicker(20 * time.Second)
 		go func() {
 			defer ticker.Stop()
 			for {
 				select {
 				case <-c.Ctx.Done():
 					return
+				case <-pingTicker.C:
+					msg := map[string]interface{}{
+						"op": "ping",
+					}
+					ws.SendRequest(msg)
 				case <-ticker.C:
 					resp, err := c.client.V5().Account().GetWalletBalance(bybit.AccountTypeV5UNIFIED, nil)
 					if err != nil {
