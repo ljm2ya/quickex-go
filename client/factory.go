@@ -12,8 +12,10 @@ import (
 	"github.com/ljm2ya/quickex-go/core"
 	futuresBinance "github.com/ljm2ya/quickex-go/futures/binance"
 	futuresBybit "github.com/ljm2ya/quickex-go/futures/bybit"
+	futuresMexc "github.com/ljm2ya/quickex-go/futures/mexc"
 	spotBinance "github.com/ljm2ya/quickex-go/spot/binance"
 	spotBybit "github.com/ljm2ya/quickex-go/spot/bybit"
+	spotMexc "github.com/ljm2ya/quickex-go/spot/mexc"
 	//spotUpbit "github.com/ljm2ya/quickex-go/spot/upbit"
 )
 
@@ -27,6 +29,8 @@ const (
 	ExchangeBinanceFuturesTestnet Exchanges = "binance-futures-testnet"
 	ExchangeBybit                 Exchanges = "bybit"
 	ExchangeBybitFutures          Exchanges = "bybit-futures"
+	ExchangeMexc                  Exchanges = "mexc"
+	ExchangeMexcFutures           Exchanges = "mexc-futures"
 )
 
 // loadED25519PrivateKey loads an ED25519 private key from either a hex string or a PEM file path
@@ -88,6 +92,8 @@ func NewPrivateClient(exchange, apiKey, secret string) core.PrivateClient {
 		return spotBinance.NewTestClient(apiKey, privateKey)
 	case string(ExchangeBybit):
 		return spotBybit.NewClient(apiKey, secret)
+	case string(ExchangeMexc):
+		return spotMexc.NewClient(apiKey, secret)
 	case string(ExchangeUpbit):
 		//return spotUpbit.NewUpbitClient(apiKey, secret)
 	}
@@ -103,6 +109,8 @@ func NewPublicClient(exchange string) core.PublicClient {
 		return spotBinance.NewTestClient("", ed25519.PrivateKey{})
 	case string(ExchangeBybit):
 		return spotBybit.NewClient("", "")
+	case string(ExchangeMexc):
+		return spotMexc.NewClient("", "")
 	case string(ExchangeUpbit):
 		//return spotUpbit.NewUpbitClient("", "")
 	}
@@ -126,6 +134,8 @@ func NewFuturesPrivateClient(exchange, apiKey, secret string) core.PrivateClient
 		return futuresBinance.NewTestClient(apiKey, privateKey)
 	case string(ExchangeBybitFutures):
 		return futuresBybit.NewClient(apiKey, secret)
+	case string(ExchangeMexcFutures):
+		return futuresMexc.NewClient(apiKey, secret)
 	}
 	panic("no matching exchange: " + exchange)
 }
@@ -139,6 +149,8 @@ func NewFuturesPublicClient(exchange string) core.PublicClient {
 		return futuresBinance.NewTestClient("", ed25519.PrivateKey{})
 	case string(ExchangeBybitFutures):
 		return futuresBybit.NewClient("", "")
+	case string(ExchangeMexcFutures):
+		return futuresMexc.NewClient("", "")
 	}
 	panic("no matching exchange: " + exchange)
 }
