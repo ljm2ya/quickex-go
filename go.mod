@@ -11,6 +11,7 @@ require (
 	github.com/mailru/easyjson v0.9.0
 	github.com/pkg/errors v0.9.1
 	github.com/shopspring/decimal v1.4.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/thoas/go-funk v0.9.3
 	golang.org/x/crypto v0.40.0
 )
@@ -18,6 +19,7 @@ require (
 require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
 )
 
 replace github.com/hirokisan/bybit/v2 => ../bybit

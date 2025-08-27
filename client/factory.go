@@ -9,12 +9,14 @@ import (
 	"io/ioutil"
 	"strings"
 
+	binance "github.com/ljm2ya/quickex-go/client/binance"
+	binanceFutures "github.com/ljm2ya/quickex-go/client/binance/futures"
+	bybit "github.com/ljm2ya/quickex-go/client/bybit"
+	bybitFutures "github.com/ljm2ya/quickex-go/client/bybit/futures"
+	kucoin "github.com/ljm2ya/quickex-go/client/kucoin"
+	kucoinFutures "github.com/ljm2ya/quickex-go/client/kucoin/futures"
 	"github.com/ljm2ya/quickex-go/core"
-	futuresBinance "github.com/ljm2ya/quickex-go/futures/binance"
-	futuresBybit "github.com/ljm2ya/quickex-go/futures/bybit"
-	spotBinance "github.com/ljm2ya/quickex-go/spot/binance"
-	spotBybit "github.com/ljm2ya/quickex-go/spot/bybit"
-	//spotUpbit "github.com/ljm2ya/quickex-go/spot/upbit"
+	//upbit "github.com/ljm2ya/quickex-go/client/upbit"
 )
 
 type Exchanges string
@@ -27,6 +29,8 @@ const (
 	ExchangeBinanceFuturesTestnet Exchanges = "binance-futures-testnet"
 	ExchangeBybit                 Exchanges = "bybit"
 	ExchangeBybitFutures          Exchanges = "bybit-futures"
+	ExchangeKucoin                Exchanges = "kucoin"
+	ExchangeKucoinFutures         Exchanges = "kucoin-futures"
 )
 
 // loadED25519PrivateKey loads an ED25519 private key from either a hex string or a PEM file path
@@ -72,24 +76,26 @@ func loadED25519PrivateKey(secretOrPath string) (ed25519.PrivateKey, error) {
 }
 
 // NewPrivateClient creates a new PrivateClient for the specified exchange
-func NewPrivateClient(exchange, apiKey, secret string) core.PrivateClient {
+func NewPrivateClient(exchange, apiKey, secret, secondary string) core.PrivateClient {
 	switch exchange {
 	case string(ExchangeBinance):
 		privateKey, err := loadED25519PrivateKey(secret)
 		if err != nil {
 			panic(fmt.Errorf("failed to load Binance private key: %w", err))
 		}
-		return spotBinance.NewClient(apiKey, privateKey)
+		return binance.NewClient(apiKey, privateKey)
 	case string(ExchangeBinanceTestnet):
 		privateKey, err := loadED25519PrivateKey(secret)
 		if err != nil {
 			panic(fmt.Errorf("failed to load Binance testnet private key: %w", err))
 		}
-		return spotBinance.NewTestClient(apiKey, privateKey)
+		return binance.NewTestClient(apiKey, privateKey)
 	case string(ExchangeBybit):
-		return spotBybit.NewClient(apiKey, secret)
+		return bybit.NewClient(apiKey, secret)
+	case string(ExchangeKucoin):
+		return kucoin.NewClient(apiKey, secret, secondary) // KuCoin uses passphrase as third param
 	case string(ExchangeUpbit):
-		//return spotUpbit.NewUpbitClient(apiKey, secret)
+		//return upbit.NewUpbitClient(apiKey, secret)
 	}
 	panic("no matching exchange: " + exchange)
 }
@@ -98,34 +104,38 @@ func NewPrivateClient(exchange, apiKey, secret string) core.PrivateClient {
 func NewPublicClient(exchange string) core.PublicClient {
 	switch exchange {
 	case string(ExchangeBinance):
-		return spotBinance.NewClient("", ed25519.PrivateKey{})
+		return binance.NewClient("", ed25519.PrivateKey{})
 	case string(ExchangeBinanceTestnet):
-		return spotBinance.NewTestClient("", ed25519.PrivateKey{})
+		return binance.NewTestClient("", ed25519.PrivateKey{})
 	case string(ExchangeBybit):
-		return spotBybit.NewClient("", "")
+		return bybit.NewClient("", "")
+	case string(ExchangeKucoin):
+		return kucoin.NewClient("", "", "")
 	case string(ExchangeUpbit):
-		//return spotUpbit.NewUpbitClient("", "")
+		//return upbit.NewUpbitClient("", "")
 	}
 	panic("no matching exchange: " + exchange)
 }
 
 // NewFuturesPrivateClient creates a new PrivateClient for futures trading on the specified exchange
-func NewFuturesPrivateClient(exchange, apiKey, secret string) core.PrivateClient {
+func NewFuturesPrivateClient(exchange, apiKey, secret, secondary string) core.PrivateClient {
 	switch exchange {
 	case string(ExchangeBinanceFutures):
 		privateKey, err := loadED25519PrivateKey(secret)
 		if err != nil {
 			panic(fmt.Errorf("failed to load Binance futures private key: %w", err))
 		}
-		return futuresBinance.NewClient(apiKey, privateKey)
+		return binanceFutures.NewClient(apiKey, privateKey)
 	case string(ExchangeBinanceFuturesTestnet):
 		privateKey, err := loadED25519PrivateKey(secret)
 		if err != nil {
 			panic(fmt.Errorf("failed to load Binance futures testnet private key: %w", err))
 		}
-		return futuresBinance.NewTestClient(apiKey, privateKey)
+		return binanceFutures.NewTestClient(apiKey, privateKey)
 	case string(ExchangeBybitFutures):
-		return futuresBybit.NewClient(apiKey, secret)
+		return bybitFutures.NewClient(apiKey, secret)
+	case string(ExchangeKucoinFutures):
+		return kucoinFutures.NewClient(apiKey, secret, secondary) // KuCoin uses passphrase as third param
 	}
 	panic("no matching exchange: " + exchange)
 }
@@ -134,11 +144,13 @@ func NewFuturesPrivateClient(exchange, apiKey, secret string) core.PrivateClient
 func NewFuturesPublicClient(exchange string) core.PublicClient {
 	switch exchange {
 	case string(ExchangeBinanceFutures):
-		return futuresBinance.NewClient("", ed25519.PrivateKey{})
+		return binanceFutures.NewClient("", ed25519.PrivateKey{})
 	case string(ExchangeBinanceFuturesTestnet):
-		return futuresBinance.NewTestClient("", ed25519.PrivateKey{})
+		return binanceFutures.NewTestClient("", ed25519.PrivateKey{})
 	case string(ExchangeBybitFutures):
-		return futuresBybit.NewClient("", "")
+		return bybitFutures.NewClient("", "")
+	case string(ExchangeKucoinFutures):
+		return kucoinFutures.NewClient("", "", "")
 	}
 	panic("no matching exchange: " + exchange)
 }

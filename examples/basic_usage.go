@@ -36,11 +36,11 @@ func main() {
 		fmt.Println("✓ Connected to Bybit spot successfully")
 		
 		// Get balance
-		balance, err := spotClient.GetBalance("USDT", true)
+		balance, err := spotClient.FetchBalance("USDT", true, false)
 		if err != nil {
 			log.Printf("Failed to get balance: %v", err)
 		} else {
-			fmt.Printf("USDT Balance: %.2f\n", balance)
+			fmt.Printf("USDT Balance: %s\n", balance.String())
 		}
 		
 		spotClient.Close()
