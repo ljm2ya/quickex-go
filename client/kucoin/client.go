@@ -10,13 +10,14 @@ import (
 )
 
 type KucoinSpotClient struct {
-	client       *api.DefaultClient
-	apiKey       string
-	apiSecret    string
+	client        *api.DefaultClient
+	apiKey        string
+	apiSecret     string
 	apiPassphrase string
-	
-	wsService    api.KucoinWSService  
-	
+
+	wsService api.KucoinWSService
+	privateWS *PrivateWebSocket // Private WebSocket for order placement
+
 	serverTimeDelta int64
 }
 
@@ -39,10 +40,10 @@ func NewClient(apiKey, apiSecret, apiPassphrase string) *KucoinSpotClient {
 		WithTransportOption(httpOption).
 		WithWebSocketClientOption(wsOption).
 		Build()
-		
+
 	client := api.NewClient(option)
 	wsService := client.WsService()
-	
+
 	return &KucoinSpotClient{
 		client:        client,
 		apiKey:        apiKey,
@@ -57,24 +58,45 @@ func (c *KucoinSpotClient) Connect(ctx context.Context) (int64, error) {
 	restService := c.client.RestService()
 	spotService := restService.GetSpotService()
 	marketAPI := spotService.GetMarketAPI()
-	
+
 	// Make API call to get server time
 	resp, err := marketAPI.GetServerTime(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get server time: %w", err)
 	}
-	
+
 	// Extract server time from response
 	serverTime := resp.Data
 	localTime := time.Now().UnixMilli()
 	c.serverTimeDelta = localTime - serverTime
-	
+
+	// Initialize and connect private WebSocket for order placement
+	retryCount := 0
+	for {
+		c.privateWS = NewPrivateWebSocket(c.apiKey, c.apiSecret, c.apiPassphrase)
+		if err := c.privateWS.Connect(); err != nil {
+			if retryCount >= 5 {
+				return 0, fmt.Errorf("failed to connect private WebSocket: %w", err)
+			}
+			retryCount += 1
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+
 	return c.serverTimeDelta, nil
 }
 
 func (c *KucoinSpotClient) Close() error {
+	var err error
+
+	// Close private WebSocket connection
+	if c.privateWS != nil {
+		err = c.privateWS.Close()
+	}
+
 	// Since each SubscribeQuotes creates its own WebSocket connection,
-	// and they are managed by their own contexts, there's nothing to clean up here.
-	// The connections will be closed when their contexts are cancelled.
-	return nil
+	// and they are managed by their own contexts, there's nothing else to clean up.
+	return err
 }

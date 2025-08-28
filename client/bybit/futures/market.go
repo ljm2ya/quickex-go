@@ -76,8 +76,10 @@ func (c *BybitFuturesClient) FetchMarketRules(quotes []string) ([]core.MarketRul
 	if len(quotes) == 0 {
 		return nil, errors.New("empty quotes")
 	}
+	limit := 1000
 	resp, err := c.client.V5().Market().GetInstrumentsInfo(bybit.V5GetInstrumentsInfoParam{
 		Category: "linear",
+		Limit:    &limit,
 	})
 	if err != nil {
 		return nil, err
@@ -151,7 +153,7 @@ func (c *BybitFuturesClient) SubscribeQuotes(ctx context.Context, symbols []stri
 			"op":   "subscribe",
 			"args": []string{fmt.Sprintf("orderbook.1.%s", symbol)},
 		}
-		
+
 		if err := conn.WriteJSON(subMsg); err != nil {
 			if errHandler != nil {
 				errHandler(fmt.Errorf("failed to subscribe to %s: %w", symbol, err))
@@ -195,12 +197,12 @@ func (c *BybitFuturesClient) SubscribeQuotes(ctx context.Context, symbols []stri
 						continue
 					}
 					symbol := msg.Topic[12:] // Skip "orderbook.1."
-					
+
 					// Ensure we have valid bid/ask data
 					if len(msg.Data.Bids) > 0 && len(msg.Data.Asks) > 0 {
 						bid := msg.Data.Bids[0]
 						ask := msg.Data.Asks[0]
-						
+
 						if len(bid) >= 2 && len(ask) >= 2 {
 							quote := core.Quote{
 								Symbol:   symbol,

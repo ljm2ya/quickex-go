@@ -124,31 +124,37 @@ func (c *KucoinSpotClient) LimitSell(symbol string, quantity, price decimal.Deci
 }
 
 func (c *KucoinSpotClient) placeLimitOrder(symbol, side string, quantity, price decimal.Decimal, tif string) (*core.OrderResponse, error) {
-	restService := c.client.RestService()
-	spotService := restService.GetSpotService()
-	orderAPI := spotService.GetOrderAPI()
+	// Check if private WebSocket is connected
+	if c.privateWS == nil || !c.privateWS.IsConnected() {
+		return nil, fmt.Errorf("private WebSocket not connected, please call Connect() first")
+	}
 
 	// Generate unique client order ID
 	clientOid := fmt.Sprintf("quickex-%d", time.Now().UnixNano())
 
-	// Create limit order request
-	req := order.NewAddOrderReqBuilder().
-		SetClientOid(clientOid).
-		SetSide(side).
-		SetSymbol(symbol).
-		SetType("limit").
-		SetSize(quantity.String()).
-		SetPrice(price.String()).
-		SetTimeInForce(mapTifToKucoin(tif)).
-		Build()
+	// Create WebSocket order request
+	wsReq := &OrderWSRequest{
+		ClientOid:   clientOid,
+		Side:        side,
+		Symbol:      symbol,
+		Type:        "limit",
+		Size:        quantity.String(),
+		Price:       price.String(),
+		TimeInForce: mapTifToKucoin(tif),
+	}
 
-	resp, err := orderAPI.AddOrder(req, context.Background())
+	// Place order via WebSocket
+	resp, err := c.privateWS.PlaceOrder(wsReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to place %s order: %w", side, err)
 	}
 
+	if !resp.Success {
+		return nil, fmt.Errorf("order placement failed: %s", resp.Error)
+	}
+
 	return &core.OrderResponse{
-		OrderID:    resp.OrderId,
+		OrderID:    resp.OrderID,
 		Symbol:     symbol,
 		Side:       strings.ToUpper(side),
 		Status:     core.OrderStatusOpen,
@@ -159,28 +165,34 @@ func (c *KucoinSpotClient) placeLimitOrder(symbol, side string, quantity, price 
 }
 
 func (c *KucoinSpotClient) MarketBuy(symbol string, quoteQuantity decimal.Decimal) (*core.OrderResponse, error) {
-	restService := c.client.RestService()
-	spotService := restService.GetSpotService()
-	orderAPI := spotService.GetOrderAPI()
+	// Check if private WebSocket is connected
+	if c.privateWS == nil || !c.privateWS.IsConnected() {
+		return nil, fmt.Errorf("private WebSocket not connected, please call Connect() first")
+	}
 
 	clientOid := fmt.Sprintf("quickex-%d", time.Now().UnixNano())
 
-	// For market buy orders, use funds (quote quantity) instead of size
-	req := order.NewAddOrderReqBuilder().
-		SetClientOid(clientOid).
-		SetSide("buy").
-		SetSymbol(symbol).
-		SetType("market").
-		SetFunds(quoteQuantity.String()).
-		Build()
+	// Create WebSocket order request for market buy
+	wsReq := &OrderWSRequest{
+		ClientOid: clientOid,
+		Side:      "buy",
+		Symbol:    symbol,
+		Type:      "market",
+		Funds:     quoteQuantity.String(), // For market buy, use funds
+	}
 
-	resp, err := orderAPI.AddOrder(req, context.Background())
+	// Place order via WebSocket
+	resp, err := c.privateWS.PlaceOrder(wsReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to place market buy order: %w", err)
 	}
 
+	if !resp.Success {
+		return nil, fmt.Errorf("market buy order failed: %s", resp.Error)
+	}
+
 	return &core.OrderResponse{
-		OrderID:         resp.OrderId,
+		OrderID:         resp.OrderID,
 		Symbol:          symbol,
 		Side:            "BUY",
 		Status:          core.OrderStatusOpen,
@@ -191,28 +203,34 @@ func (c *KucoinSpotClient) MarketBuy(symbol string, quoteQuantity decimal.Decima
 }
 
 func (c *KucoinSpotClient) MarketSell(symbol string, quantity decimal.Decimal) (*core.OrderResponse, error) {
-	restService := c.client.RestService()
-	spotService := restService.GetSpotService()
-	orderAPI := spotService.GetOrderAPI()
+	// Check if private WebSocket is connected
+	if c.privateWS == nil || !c.privateWS.IsConnected() {
+		return nil, fmt.Errorf("private WebSocket not connected, please call Connect() first")
+	}
 
 	clientOid := fmt.Sprintf("quickex-%d", time.Now().UnixNano())
 
-	// For market sell orders, use size (base quantity)
-	req := order.NewAddOrderReqBuilder().
-		SetClientOid(clientOid).
-		SetSide("sell").
-		SetSymbol(symbol).
-		SetType("market").
-		SetSize(quantity.String()).
-		Build()
+	// Create WebSocket order request for market sell
+	wsReq := &OrderWSRequest{
+		ClientOid: clientOid,
+		Side:      "sell",
+		Symbol:    symbol,
+		Type:      "market",
+		Size:      quantity.String(), // For market sell, use size
+	}
 
-	resp, err := orderAPI.AddOrder(req, context.Background())
+	// Place order via WebSocket
+	resp, err := c.privateWS.PlaceOrder(wsReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to place market sell order: %w", err)
 	}
 
+	if !resp.Success {
+		return nil, fmt.Errorf("market sell order failed: %s", resp.Error)
+	}
+
 	return &core.OrderResponse{
-		OrderID:    resp.OrderId,
+		OrderID:    resp.OrderID,
 		Symbol:     symbol,
 		Side:       "SELL",
 		Status:     core.OrderStatusOpen,
