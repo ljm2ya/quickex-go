@@ -6,6 +6,7 @@ A Go library for cryptocurrency exchange trading with unified interfaces for spo
 
 - **Binance** (Spot & Futures)
 - **Bybit** (Spot & Futures)
+- **OKX** (Spot & Futures)
 
 ## Installation
 
@@ -105,11 +106,13 @@ if err != nil {
 client.ExchangeBinance               // Binance Spot (Production)
 client.ExchangeBinanceTestnet        // Binance Spot (Testnet)
 client.ExchangeBybit                 // Bybit Spot
+client.ExchangeOKX                   // OKX Spot
 
 // Futures Trading  
 client.ExchangeBinanceFutures        // Binance Futures (Production) 
 client.ExchangeBinanceFuturesTestnet // Binance Futures (Testnet)
 client.ExchangeBybitFutures          // Bybit Futures
+client.ExchangeOKXFutures            // OKX Futures
 ```
 
 ## Key Features
