@@ -119,3 +119,9 @@ func (u *UpbitClient) makeRequest(method, endpoint string, params map[string]str
 
 	return body, nil
 }
+
+// ToSymbol converts asset and quote to exchange-specific symbol format
+// Upbit format: USDT-BTC (quote-asset, reversed order with hyphen)
+func (u *UpbitClient) ToSymbol(asset, quote string) string {
+	return quote + "-" + asset
+}

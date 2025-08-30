@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	binance "github.com/ljm2ya/quickex-go/client/binance"
@@ -38,7 +38,7 @@ func loadED25519PrivateKey(secretOrPath string) (ed25519.PrivateKey, error) {
 	// Check if it's a file path (contains .pem or starts with / or ./)
 	if strings.Contains(secretOrPath, ".pem") || strings.HasPrefix(secretOrPath, "/") || strings.HasPrefix(secretOrPath, "./") || strings.HasPrefix(secretOrPath, "../") {
 		// Try to load from file
-		pemData, err := ioutil.ReadFile(secretOrPath)
+		pemData, err := os.ReadFile(secretOrPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read PEM file: %w", err)
 		}

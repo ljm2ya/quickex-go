@@ -11,7 +11,7 @@ type OrderStatus string
 const (
 	OrderStatusOpen     OrderStatus = "OPEN"
 	OrderStatusFilled   OrderStatus = "FILLED"
-	OrderStatusCanceled OrderStatus = "CANCELED"
+	OrderStatusCanceled OrderStatus = "CANCELLED"
 	OrderStatusError    OrderStatus = "ERROR"
 )
 

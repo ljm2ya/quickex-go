@@ -9,45 +9,21 @@ By default, all KuCoin SDK logs are **disabled** to keep your console output cle
 [INFO] [default_ws_client.go+472] close websocket client
 ```
 
-## Default Behavior
+## How It Works
 
-When you import the KuCoin client package, logs are automatically disabled:
+The KuCoin client uses a silent logger implementation that suppresses all SDK log output by implementing the KuCoin SDK's `Logger` interface with no-op methods.
+
+## Enabling/Disabling Logs
 
 ```go
 import "github.com/ljm2ya/quickex-go/client/kucoin"
 
-// Logs are already disabled at this point
-client := kucoin.NewClient(apiKey, apiSecret, apiPassphrase)
-```
-
-## Enabling/Disabling Logs
-
-You can control logging behavior at runtime:
-
-```go
-// Enable logs with INFO level
-kucoin.EnableKuCoinLogs(logrus.InfoLevel)
-
-// Enable logs with ERROR level only
-kucoin.EnableKuCoinLogs(logrus.ErrorLevel)
-
-// Disable all logs again
+// Disable SDK logs (already disabled by default)
 kucoin.DisableKuCoinLogs()
 
-// Configure logging with a boolean
-kucoin.ConfigureKuCoinLogging(true)  // Enable
-kucoin.ConfigureKuCoinLogging(false) // Disable
+// Enable SDK logs for debugging
+kucoin.EnableKuCoinLogs()
 ```
-
-## Implementation Details
-
-The logging control works by:
-
-1. Implementing a custom logger that satisfies the KuCoin SDK's `Logger` interface
-2. Setting this silent logger as the SDK's logger using `logger.SetLogger()`
-3. Also disabling logrus output for any other components that might use it
-
-This ensures complete silence from the SDK unless explicitly enabled.
 
 ## Example Usage
 
@@ -56,7 +32,6 @@ package main
 
 import (
     "github.com/ljm2ya/quickex-go/client/kucoin"
-    "github.com/sirupsen/logrus"
 )
 
 func main() {
@@ -64,7 +39,7 @@ func main() {
     client := kucoin.NewClient(apiKey, apiSecret, apiPassphrase)
     
     // Enable logs temporarily for debugging
-    kucoin.EnableKuCoinLogs(logrus.DebugLevel)
+    kucoin.EnableKuCoinLogs()
     
     // Do some operations...
     
@@ -75,11 +50,12 @@ func main() {
 
 ## Futures Client
 
-The futures client also has logs disabled by default:
+The futures client also inherits the same logging behavior:
 
 ```go
 import "github.com/ljm2ya/quickex-go/client/kucoin/futures"
 
-// Logs are disabled when using futures client too
-client := futures.NewClient(apiKey, apiSecret, apiPassphrase)
+// Control futures logging
+futures.DisableKuCoinFuturesLogs()
+futures.EnableKuCoinFuturesLogs()
 ```

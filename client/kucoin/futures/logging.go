@@ -6,10 +6,10 @@ import (
 
 // DisableKuCoinFuturesLogs disables all KuCoin SDK logs for futures
 func DisableKuCoinFuturesLogs() {
-	kucoin.DisableKuCoinLogs()
+	kucoin.DisableKuCoinSDKLogs()
 }
 
 // EnableKuCoinFuturesLogs enables KuCoin SDK logs for futures
 func EnableKuCoinFuturesLogs() {
-	kucoin.ConfigureKuCoinLogging(true)
+	kucoin.EnableKuCoinSDKLogs()
 }

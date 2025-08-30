@@ -1,0 +1,26 @@
+max_latency_ms = 5000
+test_asset = "DOGE"
+test_quote = "USDT"
+test_amount_usd_spot = 10.0
+test_amount_usd_futures = 20.0
+
+[binance]
+  api_key = "you_key"
+  credentials_file = "path_to_credential"
+  is_raw_credentials = false
+  spot = false
+  futures = false
+
+[bybit]
+  api_key = "you_key"
+  credentials_file = "path_to_credential"
+  is_raw_credentials = true
+  spot = false
+  futures = true
+
+[kucoin]
+  api_key = "you_key"
+  credentials_file = "path_to_credential"
+  is_raw_credentials = true
+  spot = false
+  futures = false

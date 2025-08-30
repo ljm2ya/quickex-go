@@ -14,13 +14,16 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/ljm2ya/quickex-go/client/kucoin/common"
 )
 
 // PrivateWebSocket handles authenticated WebSocket connection for order placement
 type PrivateWebSocket struct {
-	apiKey        string
-	apiSecret     string
-	apiPassphrase string
+	apiKey          string
+	apiSecret       string
+	apiPassphrase   string
+	serverTimeDelta int64             // Add server time delta
+	marketType      common.MarketType // Market type (spot or futures)
 
 	conn   *websocket.Conn
 	connMu sync.Mutex
@@ -33,75 +36,51 @@ type PrivateWebSocket struct {
 	cancel context.CancelFunc
 
 	// Channel for order responses
-	orderResponses chan *OrderWSResponse
+	orderResponses chan *common.OrderWSResponse
 
 	// Request tracking
 	requestID     int64
 	requestIDMu   sync.Mutex
-	pendingOrders map[string]chan *OrderWSResponse
+	pendingOrders map[string]chan *common.OrderWSResponse
 	pendingMu     sync.RWMutex
+
+	// Connection error handling
+	connErr   chan error
+	connReady chan struct{}
 }
 
-// WebSocketToken response from KuCoin API
-type WebSocketToken struct {
-	Code string `json:"code"`
-	Data struct {
-		Token           string `json:"token"`
-		InstanceServers []struct {
-			Endpoint     string `json:"endpoint"`
-			Protocol     string `json:"protocol"`
-			Encrypt      bool   `json:"encrypt"`
-			PingInterval int    `json:"pingInterval"`
-			PingTimeout  int    `json:"pingTimeout"`
-		} `json:"instanceServers"`
-	} `json:"data"`
-}
-
-// PingMessage represents a ping message
-type PingMessage struct {
-	ID   string `json:"id"`
-	Type string `json:"type"`
-}
-
-// OrderWSRequest represents the data for placing an order
-type OrderWSRequest struct {
-	ClientOid   string `json:"clientOid"`
-	Side        string `json:"side"`
-	Symbol      string `json:"symbol"`
-	Type        string `json:"type"`
-	Price       string `json:"price,omitempty"`
-	Size        string `json:"size,omitempty"`
-	Funds       string `json:"funds,omitempty"`
-	TimeInForce string `json:"timeInForce,omitempty"`
-}
-
-// OrderWSResponse represents the response from order placement
-type OrderWSResponse struct {
-	OrderID   string `json:"orderId"`
-	Success   bool   `json:"success"`
-	Error     string `json:"error,omitempty"`
-	ClientOid string `json:"clientOid"`
-}
+// Type aliases for backward compatibility
+type OrderWSRequest = common.OrderWSRequest
+type OrderWSResponse = common.OrderWSResponse
 
 // NewPrivateWebSocket creates a new private WebSocket connection
-func NewPrivateWebSocket(apiKey, apiSecret, apiPassphrase string) *PrivateWebSocket {
+func NewPrivateWebSocket(apiKey, apiSecret, apiPassphrase string, serverTimeDelta int64) *PrivateWebSocket {
+	return NewPrivateWebSocketWithMarket(apiKey, apiSecret, apiPassphrase, serverTimeDelta, common.MarketTypeSpot)
+}
+
+// NewPrivateWebSocketWithMarket creates a new private WebSocket connection for specific market
+func NewPrivateWebSocketWithMarket(apiKey, apiSecret, apiPassphrase string, serverTimeDelta int64, marketType common.MarketType) *PrivateWebSocket {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &PrivateWebSocket{
-		apiKey:         apiKey,
-		apiSecret:      apiSecret,
-		apiPassphrase:  apiPassphrase,
-		ctx:            ctx,
-		cancel:         cancel,
-		orderResponses: make(chan *OrderWSResponse, 100),
-		pendingOrders:  make(map[string]chan *OrderWSResponse),
+		apiKey:          apiKey,
+		apiSecret:       apiSecret,
+		apiPassphrase:   apiPassphrase,
+		serverTimeDelta: serverTimeDelta,
+		marketType:      marketType,
+		ctx:             ctx,
+		cancel:          cancel,
+		orderResponses:  make(chan *common.OrderWSResponse, 100),
+		pendingOrders:   make(map[string]chan *common.OrderWSResponse),
+		connErr:         make(chan error, 1),
+		connReady:       make(chan struct{}, 1),
 	}
 }
 
 // Connect establishes the private WebSocket connection with authentication
 func (ws *PrivateWebSocket) Connect() error {
-	// Generate timestamp
-	timestamp := strconv.FormatInt(time.Now().UnixNano()/1e6, 10)
+	// Generate timestamp adjusted with server time delta
+	timestamp := strconv.FormatInt(time.Now().UnixNano()/1e6-ws.serverTimeDelta, 10)
 
 	// Create signature for WebSocket authentication
 	// The signature string is "apikey+timestamp"
@@ -131,16 +110,40 @@ func (ws *PrivateWebSocket) Connect() error {
 	}
 
 	ws.conn = conn
+	var msg map[string]interface{}
+	if err := conn.ReadJSON(&msg); err != nil {
+		if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+			// Log error or handle reconnection
+		}
+		return fmt.Errorf("failed to connect to WebSocket: %w", err)
+	}
 
+	if sessionId, hasSession := msg["sessionId"].(string); hasSession {
+		if timestamp, hasTimestamp := msg["timestamp"].(float64); hasTimestamp {
+			// Send authentication response
+			ws.authenticateSession(sessionId, int64(timestamp))
+		}
+	} else {
+		msgBytes, _ := json.Marshal(msg)
+		return fmt.Errorf("Unknown WebSocket Response: %s", string(msgBytes))
+	}
+
+	if err := conn.ReadJSON(&msg); err != nil {
+		if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+			// Log error or handle reconnection
+		}
+		return fmt.Errorf("failed to connect to WebSocket: %w", err)
+	}
+	if _, hasCode := msg["code"]; hasCode {
+		// Error message - log it and send to error channel
+		msgBytes, _ := json.Marshal(msg)
+		return fmt.Errorf("KuCoin WebSocket error: %s", string(msgBytes))
+	}
 	// Start message reader
 	go ws.readMessages()
 
 	// Start ping sender
 	go ws.pingLoop()
-
-	// Wait for connection to be established
-	time.Sleep(100 * time.Millisecond)
-
 	return nil
 }
 
@@ -168,9 +171,10 @@ func (ws *PrivateWebSocket) sendPing() error {
 		return fmt.Errorf("connection is closed")
 	}
 
-	pingMsg := PingMessage{
-		ID:   fmt.Sprintf("%d", time.Now().UnixNano()),
-		Type: "ping",
+	pingMsg := common.PingMessage{
+		Id:        fmt.Sprintf("%d", time.Now().UnixNano()),
+		Op:        "ping",
+		Timestamp: time.Now().Unix(),
 	}
 
 	return ws.conn.WriteJSON(pingMsg)
@@ -195,9 +199,38 @@ func (ws *PrivateWebSocket) readMessages() {
 				return
 			}
 
-			// Log received message for debugging
-			msgBytes, _ := json.Marshal(msg)
-			fmt.Printf("[DEBUG] Received message: %s\n", string(msgBytes))
+			/*
+				// Filter and log important messages
+				if data, ok := msg["data"].(string); ok && data == "welcome" {
+					// Connection established successfully - signal ready
+					select {
+					case ws.connReady <- struct{}{}:
+					default:
+						// Channel already signaled
+					}
+				} else if code, hasCode := msg["code"]; hasCode {
+					// Error message - log it and send to error channel
+					msgBytes, _ := json.Marshal(msg)
+					fmt.Printf("[ERROR] KuCoin WebSocket error: %s\n", string(msgBytes))
+
+					// Extract error details
+					var errMsg string
+					if m, ok := msg["msg"].(string); ok {
+						errMsg = m
+					} else if m, ok := msg["message"].(string); ok {
+						errMsg = m
+					} else {
+						errMsg = fmt.Sprintf("error code: %v", code)
+					}
+
+					// Send error to connection error channel (non-blocking)
+					select {
+					case ws.connErr <- fmt.Errorf("KuCoin WebSocket error: %s", errMsg):
+					default:
+						// Error channel full or already used
+					}
+				}
+			*/
 
 			// Handle different message types based on the raw message
 			msgType, _ := msg["type"].(string)
@@ -206,7 +239,12 @@ func (ws *PrivateWebSocket) readMessages() {
 			case "pong":
 				// Pong received, connection is healthy
 			case "welcome":
-				// Connection authenticated successfully
+				// Connection authenticated successfully - signal ready
+				select {
+				case ws.connReady <- struct{}{}:
+				default:
+					// Channel already signaled
+				}
 			default:
 				// Check if it's a session message
 				if sessionId, hasSession := msg["sessionId"].(string); hasSession {
@@ -257,23 +295,41 @@ func (ws *PrivateWebSocket) PlaceOrder(req *OrderWSRequest) (*OrderWSResponse, e
 		args["size"] = req.Size
 	} else if req.Type == "market" {
 		// For market orders
-		if req.Side == "buy" {
-			args["funds"] = req.Funds // Market buy uses funds
+		if ws.marketType == common.MarketTypeSpot && req.Side == "buy" {
+			// Spot market buy uses funds
+			args["funds"] = req.Funds
 		} else {
-			args["size"] = req.Size // Market sell uses size
+			// Spot market sell and all futures market orders use size
+			args["size"] = req.Size
 		}
+	}
+
+	// Add futures-specific fields if applicable
+	if ws.marketType == common.MarketTypeFutures {
+		if req.Leverage != "" {
+			args["leverage"] = req.Leverage
+		}
+		if req.StopPrice != "" {
+			args["stopPrice"] = req.StopPrice
+		}
+	}
+
+	// Determine operation based on market type
+	operation := "spot.order"
+	if ws.marketType == common.MarketTypeFutures {
+		operation = "futures.order"
 	}
 
 	// Use the unified trading API message format
 	msg := map[string]interface{}{
 		"id":   requestID,
-		"op":   "spot.order",
+		"op":   operation,
 		"args": args,
 	}
 
 	// Log the message being sent for debugging
-	msgBytes, _ := json.Marshal(msg)
-	fmt.Printf("[DEBUG] Sending order message: %s\n", string(msgBytes))
+	//msgBytes, _ := json.Marshal(msg)
+	json.Marshal(msg)
 
 	// Send order
 	ws.connMu.Lock()
@@ -357,7 +413,6 @@ func (ws *PrivateWebSocket) authenticateSession(sessionId string, timestamp int6
 		return fmt.Errorf("connection is closed")
 	}
 
-	fmt.Printf("[DEBUG] Sending auth token: %s\n", authToken)
 	// Try sending just the auth token as text
 	return ws.conn.WriteMessage(websocket.TextMessage, []byte(authToken))
 }

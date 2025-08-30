@@ -314,3 +314,9 @@ func afterConnect(b *BinanceClient) core.WsAfterConnectFunc {
 		return nil
 	}
 }
+
+// ToSymbol converts asset and quote to exchange-specific symbol format
+// Binance Futures format: BTCUSDT (no separator)
+func (b *BinanceClient) ToSymbol(asset, quote string) string {
+	return asset + quote
+}

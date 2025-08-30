@@ -22,6 +22,9 @@ type KucoinSpotClient struct {
 }
 
 func NewClient(apiKey, apiSecret, apiPassphrase string) *KucoinSpotClient {
+	// Disable SDK logs by default
+	DisableKuCoinSDKLogs()
+
 	// Configure HTTP transport options
 	httpOption := types.NewTransportOptionBuilder().
 		SetKeepAlive(true).
@@ -70,11 +73,12 @@ func (c *KucoinSpotClient) Connect(ctx context.Context) (int64, error) {
 	localTime := time.Now().UnixMilli()
 	c.serverTimeDelta = localTime - serverTime
 
-	// Initialize and connect private WebSocket for order placement
+	// Initialize and connect private WebSocket for order placement with server time delta
 	retryCount := 0
+	c.privateWS = NewPrivateWebSocket(c.apiKey, c.apiSecret, c.apiPassphrase, c.serverTimeDelta)
 	for {
-		c.privateWS = NewPrivateWebSocket(c.apiKey, c.apiSecret, c.apiPassphrase)
 		if err := c.privateWS.Connect(); err != nil {
+			fmt.Printf("failed to connect private WebSocket: %v", err)
 			if retryCount >= 5 {
 				return 0, fmt.Errorf("failed to connect private WebSocket: %w", err)
 			}
@@ -99,4 +103,10 @@ func (c *KucoinSpotClient) Close() error {
 	// Since each SubscribeQuotes creates its own WebSocket connection,
 	// and they are managed by their own contexts, there's nothing else to clean up.
 	return err
+}
+
+// ToSymbol converts asset and quote to exchange-specific symbol format
+// KuCoin format: BTC-USDT (hyphen separator)
+func (c *KucoinSpotClient) ToSymbol(asset, quote string) string {
+	return asset + "-" + quote
 }

@@ -233,6 +233,12 @@ func (c *BybitFuturesClient) afterConnect() core.WsAfterConnectFunc {
 	}
 }
 
+// ToSymbol converts asset and quote to exchange-specific symbol format
+// Bybit Futures format: BTCUSDT (no separator)
+func (c *BybitFuturesClient) ToSymbol(asset, quote string) string {
+	return asset + quote
+}
+
 // --- HMAC-SHA256 서명 ---
 func hmacSHA256(msg, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))

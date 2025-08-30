@@ -9,6 +9,7 @@ type PublicClient interface {
 	SubscribeQuotes(ctx context.Context, symbols []string, errHandler func(err error)) (map[string]chan Quote, error)
 	//	SubscribeOrderbook(ctx context.Context, symbols []string, depth int, errHandler func(err error)) (map[string]<-chan Orderbook, error)
 
+	ToSymbol(asset, quote string) string
 	FetchMarketRules(quotes []string) ([]MarketRule, error)
 }
 

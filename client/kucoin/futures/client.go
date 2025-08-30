@@ -16,11 +16,15 @@ type KucoinFuturesClient struct {
 	apiPassphrase string
 	
 	wsService       api.KucoinWSService
+	privateWS       *PrivateWebSocket // Private WebSocket for order placement
 	
 	serverTimeDelta int64
 }
 
 func NewClient(apiKey, apiSecret, apiPassphrase string) *KucoinFuturesClient {
+	// Disable SDK logs by default
+	DisableKuCoinFuturesLogs()
+	
 	// Configure HTTP transport options
 	httpOption := types.NewTransportOptionBuilder().
 		SetKeepAlive(true).
@@ -69,12 +73,39 @@ func (c *KucoinFuturesClient) Connect(ctx context.Context) (int64, error) {
 	localTime := time.Now().UnixMilli()
 	c.serverTimeDelta = localTime - serverTime
 	
+	// Initialize and connect private WebSocket for order placement with server time delta
+	retryCount := 0
+	c.privateWS = NewPrivateWebSocket(c.apiKey, c.apiSecret, c.apiPassphrase, c.serverTimeDelta)
+	for {
+		if err := c.privateWS.Connect(); err != nil {
+			if retryCount >= 5 {
+				return 0, fmt.Errorf("failed to connect private WebSocket: %w", err)
+			}
+			retryCount += 1
+			time.Sleep(time.Second)
+			continue
+		}
+		break
+	}
+	
 	return c.serverTimeDelta, nil
 }
 
 func (c *KucoinFuturesClient) Close() error {
+	var err error
+	
+	// Close private WebSocket connection
+	if c.privateWS != nil {
+		err = c.privateWS.Close()
+	}
+	
 	// Since each SubscribeQuotes creates its own WebSocket connection,
-	// and they are managed by their own contexts, there's nothing to clean up here.
-	// The connections will be closed when their contexts are cancelled.
-	return nil
+	// and they are managed by their own contexts, there's nothing else to clean up.
+	return err
+}
+
+// ToSymbol converts asset and quote to exchange-specific symbol format
+// KuCoin Futures format: BTCUSDTM (no separator, M suffix for futures)
+func (c *KucoinFuturesClient) ToSymbol(asset, quote string) string {
+	return asset + quote + "M"
 }

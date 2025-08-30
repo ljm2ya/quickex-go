@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Kucoin/kucoin-universal-sdk/sdk/golang/pkg/generate/spot/order"
+	"github.com/ljm2ya/quickex-go/client/kucoin/common"
 	"github.com/ljm2ya/quickex-go/core"
 	"github.com/shopspring/decimal"
 )
@@ -35,6 +36,9 @@ func (c *KucoinSpotClient) FetchOrder(symbol, orderId string) (*core.OrderRespon
 			}
 		}
 		time.Sleep(time.Millisecond * 150)
+	}
+	if resp.Type == "market" {
+		fmt.Printf("%s")
 	}
 
 	// Parse order data from response fields
@@ -282,6 +286,11 @@ func (c *KucoinSpotClient) CancelAll(symbol string) error {
 // Helper functions
 
 func mapOrderStatus(order *order.GetOrderByOrderIdResp) core.OrderStatus {
+	if order.Type == "market" {
+		if order.DealSize != "" {
+			return core.OrderStatusFilled
+		}
+	}
 	if order == nil {
 		return core.OrderStatusError
 	}
@@ -294,15 +303,5 @@ func mapOrderStatus(order *order.GetOrderByOrderIdResp) core.OrderStatus {
 	return core.OrderStatusCanceled
 }
 
-func mapTifToKucoin(tif string) string {
-	switch tif {
-	case string(core.TimeInForceGTC):
-		return "GTC"
-	case string(core.TimeInForceIOC):
-		return "IOC"
-	case string(core.TimeInForceFOK):
-		return "FOK"
-	default:
-		return "GTC"
-	}
-}
+// Use common utility function
+var mapTifToKucoin = common.MapTifToKucoin
