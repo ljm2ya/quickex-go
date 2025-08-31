@@ -21,5 +21,3 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 )
-
-replace github.com/hirokisan/bybit/v2 => ../bybit

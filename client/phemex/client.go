@@ -98,6 +98,12 @@ func (c *PhemexClient) authFn() core.WsAuthFunc {
 			},
 		}
 		
+		// 디버깅용 출력 (정확한 형식 확인)
+		fmt.Printf("[DEBUG] API Key: %s\n", c.apiKey)
+		fmt.Printf("[DEBUG] API Secret length: %d\n", len(c.apiSecret))
+		fmt.Printf("[DEBUG] Signature: %s\n", signature)
+		fmt.Printf("[DEBUG] Expiry: %d\n", expiry)
+		
 		if err := ws.WriteJSON(authMsg); err != nil {
 			return 0, fmt.Errorf("failed to send auth message: %w", err)
 		}
@@ -108,13 +114,31 @@ func (c *PhemexClient) authFn() core.WsAuthFunc {
 			return 0, fmt.Errorf("failed to read auth response: %w", err)
 		}
 		
-		var resp PhemexWSMessage
+		// 디버깅용 응답 출력
+		fmt.Printf("[DEBUG] Auth response: %s\n", string(msg))
+		
+		var resp map[string]interface{}
 		if err := json.Unmarshal(msg, &resp); err != nil {
 			return 0, fmt.Errorf("failed to unmarshal auth response: %w", err)
 		}
 		
-		if resp.Error != nil {
-			return 0, ParsePhemexError(resp.Error.Code, resp.Error.Message)
+		// 에러 체크
+		if errorData, exists := resp["error"]; exists && errorData != nil {
+			if errorMap, ok := errorData.(map[string]interface{}); ok {
+				code := int(0)
+				message := "unknown error"
+				if codeVal, exists := errorMap["code"]; exists {
+					if codeFloat, ok := codeVal.(float64); ok {
+						code = int(codeFloat)
+					}
+				}
+				if msgVal, exists := errorMap["message"]; exists {
+					if msgStr, ok := msgVal.(string); ok {
+						message = msgStr
+					}
+				}
+				return 0, ParsePhemexError(code, message)
+			}
 		}
 		
 		c.authMu.Lock()
@@ -136,7 +160,8 @@ func (c *PhemexClient) startPingRoutine(ws *websocket.Conn) {
 		select {
 		case <-ticker.C:
 			if err := ws.WriteMessage(websocket.PingMessage, nil); err != nil {
-				fmt.Printf("Failed to send ping: %v\n", err)
+				// Ping 실패시 로그 출력 (향후 구조화된 로깅으로 대체 예정)
+				fmt.Printf("[Phemex Spot] Failed to send ping: %v\n", err)
 				return
 			}
 		}
@@ -147,7 +172,7 @@ func (c *PhemexClient) userDataHandlerFn() core.WsUserEventHandler {
 	return func(msg []byte) {
 		var wsMsg PhemexWSMessage
 		if err := json.Unmarshal(msg, &wsMsg); err != nil {
-			fmt.Printf("Failed to unmarshal WebSocket message: %v\n", err)
+			fmt.Printf("[Phemex Spot] Failed to unmarshal WebSocket message: %v\n", err)
 			return
 		}
 		
