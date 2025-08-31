@@ -37,10 +37,6 @@ func (c *KucoinSpotClient) FetchOrder(symbol, orderId string) (*core.OrderRespon
 		}
 		time.Sleep(time.Millisecond * 150)
 	}
-	if resp.Type == "market" {
-		fmt.Printf("%s")
-	}
-
 	// Parse order data from response fields
 	price, _ := decimal.NewFromString(resp.Price)
 	quantity, _ := decimal.NewFromString(resp.Size)

@@ -7,37 +7,46 @@ import (
 	"time"
 
 	"github.com/Kucoin/kucoin-universal-sdk/sdk/golang/pkg/generate/futures/order"
-	"github.com/ljm2ya/quickex-go/core"
 	"github.com/ljm2ya/quickex-go/client/kucoin/common"
+	"github.com/ljm2ya/quickex-go/core"
 	"github.com/shopspring/decimal"
 )
 
 func (c *KucoinFuturesClient) FetchOrder(symbol, orderId string) (*core.OrderResponseFull, error) {
-	ctx := context.Background()
 	restService := c.client.RestService()
 	futuresService := restService.GetFuturesService()
 	orderAPI := futuresService.GetOrderAPI()
 
 	// Use the SDK to fetch order
-	request := order.NewGetOrderByOrderIdReqBuilder().
+	req := order.NewGetOrderByOrderIdReqBuilder().
 		SetOrderId(orderId).
 		Build()
 
-	resp, err := orderAPI.GetOrderByOrderId(request, ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch order: %w", err)
+	var resp *order.GetOrderByOrderIdResp
+	var err error
+	for {
+		resp, err = orderAPI.GetOrderByOrderId(req, context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("failed to get order: %w", err)
+		}
+		if resp != nil {
+			if resp.Id != "" {
+				break
+			}
+		}
+		time.Sleep(time.Millisecond * 150)
 	}
 
+	mul, ok := c.multiplierMap[symbol]
+	if !ok {
+		return nil, fmt.Errorf("no matching symbol or not connected")
+	}
 	// Parse decimal values from response fields directly
 	price, _ := decimal.NewFromString(resp.Price)
 	quantity := decimal.NewFromInt(int64(resp.Size))
-	executedQty := decimal.NewFromInt(int64(resp.DealSize))
-	avgPrice := decimal.Zero
+	executedQty := decimal.NewFromInt(int64(resp.DealSize)).Mul(mul)
+	avgPrice, _ := decimal.NewFromString(resp.AvgDealPrice)
 	fee := decimal.Zero // Futures doesn't return fee in this response
-
-	if resp.AvgDealPrice != "" {
-		avgPrice, _ = decimal.NewFromString(resp.AvgDealPrice)
-	}
 
 	// Convert timestamps
 	createTime := time.Unix(resp.CreatedAt/1000, 0)
@@ -48,7 +57,7 @@ func (c *KucoinFuturesClient) FetchOrder(symbol, orderId string) (*core.OrderRes
 			OrderID:    resp.Id,
 			Symbol:     resp.Symbol,
 			Side:       strings.ToUpper(resp.Side),
-			Status:     mapKucoinFuturesOrderStatus(resp.Status),
+			Status:     mapOrderStatus(resp),
 			Price:      price,
 			Quantity:   quantity,
 			CreateTime: createTime,
@@ -78,15 +87,25 @@ func (c *KucoinFuturesClient) placeLimitOrder(symbol, side string, quantity, pri
 	// Generate unique client order ID
 	clientOid := fmt.Sprintf("quickex-futures-%d", time.Now().UnixNano())
 
+	mul, on := c.multiplierMap[symbol]
+	if !on {
+		return nil, fmt.Errorf("failed to get lot of order symbol: check initial connection")
+	}
+	lotQty := quantity.DivRound(mul, 0)
+	if lotQty.IsZero() {
+		return nil, fmt.Errorf("order failed: quantity too small: %s", quantity.String())
+	}
+
 	// Create WebSocket order request
 	wsReq := &OrderWSRequest{
 		ClientOid:   clientOid,
-		Side:        side,
+		Side:        strings.ToLower(side),
 		Symbol:      symbol,
 		Type:        "limit",
-		Size:        quantity.String(),
+		Size:        lotQty.String(),
 		Price:       price.String(),
 		TimeInForce: mapTifToKucoin(tif),
+		MarginMode:  "CROSS",
 	}
 
 	// Place order via WebSocket
@@ -110,7 +129,7 @@ func (c *KucoinFuturesClient) placeLimitOrder(symbol, side string, quantity, pri
 	}, nil
 }
 
-func (c *KucoinFuturesClient) MarketBuy(symbol string, quantity decimal.Decimal) (*core.OrderResponse, error) {
+func (c *KucoinFuturesClient) MarketBuy(symbol string, quoteQuantity decimal.Decimal) (*core.OrderResponse, error) {
 	// Check if private WebSocket is connected
 	if c.privateWS == nil || !c.privateWS.IsConnected() {
 		return nil, fmt.Errorf("private WebSocket not connected, please call Connect() first")
@@ -118,15 +137,16 @@ func (c *KucoinFuturesClient) MarketBuy(symbol string, quantity decimal.Decimal)
 
 	clientOid := fmt.Sprintf("quickex-futures-%d", time.Now().UnixNano())
 
+	lotQty := quoteQuantity.RoundDown(0).String()
 	// Create WebSocket order request for market buy
 	// Note: In futures, market orders use size (quantity) for both buy and sell
 	wsReq := &OrderWSRequest{
-		ClientOid: clientOid,
-		Side:      "buy",
-		Symbol:    symbol,
-		Type:      "market",
-		Size:      quantity.String(),
-		Leverage:  "1", // Default leverage
+		ClientOid:  clientOid,
+		Side:       "buy",
+		Symbol:     symbol,
+		Type:       "market",
+		ValueQty:   lotQty,
+		MarginMode: "CROSS",
 	}
 
 	// Place order via WebSocket
@@ -140,12 +160,13 @@ func (c *KucoinFuturesClient) MarketBuy(symbol string, quantity decimal.Decimal)
 	}
 
 	return &core.OrderResponse{
-		OrderID:    resp.OrderID,
-		Symbol:     symbol,
-		Side:       "BUY",
-		Status:     core.OrderStatusOpen,
-		Quantity:   quantity,
-		CreateTime: time.Now(),
+		OrderID:         resp.OrderID,
+		Symbol:          symbol,
+		Side:            "BUY",
+		Status:          core.OrderStatusOpen,
+		Quantity:        quoteQuantity,
+		IsQuoteQuantity: true,
+		CreateTime:      time.Now(),
 	}, nil
 }
 
@@ -159,12 +180,12 @@ func (c *KucoinFuturesClient) MarketSell(symbol string, quantity decimal.Decimal
 
 	// Create WebSocket order request for market sell
 	wsReq := &OrderWSRequest{
-		ClientOid: clientOid,
-		Side:      "sell",
-		Symbol:    symbol,
-		Type:      "market",
-		Size:      quantity.String(),
-		Leverage:  "1", // Default leverage
+		ClientOid:  clientOid,
+		Side:       "sell",
+		Symbol:     symbol,
+		Type:       "market",
+		Qty:        quantity.String(),
+		MarginMode: "CROSS",
 	}
 
 	// Place order via WebSocket
@@ -241,16 +262,18 @@ func (c *KucoinFuturesClient) CancelAll(symbol string) error {
 
 // Helper functions
 
-func mapKucoinFuturesOrderStatus(status string) core.OrderStatus {
-	switch status {
-	case "open", "match":
+func mapOrderStatus(order *order.GetOrderByOrderIdResp) core.OrderStatus {
+	if order.Status == "open" {
 		return core.OrderStatusOpen
-	case "done":
-		return core.OrderStatusFilled
-	case "cancel":
-		return core.OrderStatusCanceled
-	default:
-		return core.OrderStatusError
+	} else {
+		if order.CancelExist {
+			return core.OrderStatusCanceled
+		} else {
+			if order.DealSize != 0 {
+				return core.OrderStatusFilled
+			}
+			return core.OrderStatusError
+		}
 	}
 }
 

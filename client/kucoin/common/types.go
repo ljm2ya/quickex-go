@@ -39,9 +39,12 @@ type OrderWSRequest struct {
 	Type        string `json:"type"`
 	Price       string `json:"price,omitempty"`
 	Size        string `json:"size,omitempty"`
-	Funds       string `json:"funds,omitempty"`       // Spot only: for market buy orders
-	Leverage    string `json:"leverage,omitempty"`    // Futures only
-	StopPrice   string `json:"stopPrice,omitempty"`   // Futures only: for stop orders
+	Qty         string `json:"qty,omitempty"`        // Futures only: base currency quantity
+	ValueQty    string `json:"valueQty,omitempty"`   // Futures only: quote currency quantity
+	Funds       string `json:"funds,omitempty"`      // Spot only: for market buy orders
+	Leverage    string `json:"leverage,omitempty"`   // Futures only
+	MarginMode  string `json:"marginMode,omitempty"` // Futures only ISOLATED/CROSS
+	StopPrice   string `json:"stopPrice,omitempty"`  // Futures only: for stop orders
 	TimeInForce string `json:"timeInForce,omitempty"`
 }
 

@@ -199,39 +199,6 @@ func (ws *PrivateWebSocket) readMessages() {
 				return
 			}
 
-			/*
-				// Filter and log important messages
-				if data, ok := msg["data"].(string); ok && data == "welcome" {
-					// Connection established successfully - signal ready
-					select {
-					case ws.connReady <- struct{}{}:
-					default:
-						// Channel already signaled
-					}
-				} else if code, hasCode := msg["code"]; hasCode {
-					// Error message - log it and send to error channel
-					msgBytes, _ := json.Marshal(msg)
-					fmt.Printf("[ERROR] KuCoin WebSocket error: %s\n", string(msgBytes))
-
-					// Extract error details
-					var errMsg string
-					if m, ok := msg["msg"].(string); ok {
-						errMsg = m
-					} else if m, ok := msg["message"].(string); ok {
-						errMsg = m
-					} else {
-						errMsg = fmt.Sprintf("error code: %v", code)
-					}
-
-					// Send error to connection error channel (non-blocking)
-					select {
-					case ws.connErr <- fmt.Errorf("KuCoin WebSocket error: %s", errMsg):
-					default:
-						// Error channel full or already used
-					}
-				}
-			*/
-
 			// Handle different message types based on the raw message
 			msgType, _ := msg["type"].(string)
 
@@ -252,14 +219,11 @@ func (ws *PrivateWebSocket) readMessages() {
 						// Send authentication response
 						ws.authenticateSession(sessionId, int64(timestamp))
 					}
-				} else if _, hasID := msg["id"].(string); hasID {
-					// Check if this is an order response
-					// Check if it's an error response
-					if code, hasCode := msg["code"].(float64); hasCode && code != 0 {
-						ws.handleErrorRaw(msg)
-					} else {
-						// It's likely an order response
+				} else if code, hasCode := msg["code"].(string); hasCode {
+					if code == "200000" {
 						ws.handleOrderResponseRaw(msg)
+					} else {
+						ws.handleErrorRaw(msg)
 					}
 				}
 			}
@@ -283,41 +247,47 @@ func (ws *PrivateWebSocket) PlaceOrder(req *OrderWSRequest) (*OrderWSResponse, e
 
 	// Create order message using the unified trading API format
 	args := map[string]interface{}{
-		"symbol":      req.Symbol,
-		"side":        strings.ToLower(req.Side),
-		"type":        strings.ToLower(req.Type),
-		"timeInForce": strings.ToUpper(req.TimeInForce),
+		"symbol": req.Symbol,
+		"side":   strings.ToLower(req.Side),
+		"type":   strings.ToLower(req.Type),
 	}
 
-	// Add price and quantity for limit orders
-	if req.Type == "limit" {
+	// Configure order based on type
+	switch req.Type {
+	case "limit":
 		args["price"] = req.Price
 		args["size"] = req.Size
-	} else if req.Type == "market" {
-		// For market orders
-		if ws.marketType == common.MarketTypeSpot && req.Side == "buy" {
-			// Spot market buy uses funds
+		args["timeInForce"] = strings.ToUpper(req.TimeInForce)
+	case "market":
+		if req.Side == "buy" {
 			args["funds"] = req.Funds
 		} else {
-			// Spot market sell and all futures market orders use size
 			args["size"] = req.Size
 		}
 	}
 
-	// Add futures-specific fields if applicable
-	if ws.marketType == common.MarketTypeFutures {
-		if req.Leverage != "" {
-			args["leverage"] = req.Leverage
-		}
-		if req.StopPrice != "" {
-			args["stopPrice"] = req.StopPrice
-		}
-	}
-
-	// Determine operation based on market type
 	operation := "spot.order"
+	// Futures-specific configuration
 	if ws.marketType == common.MarketTypeFutures {
 		operation = "futures.order"
+		args["clientOid"] = req.ClientOid
+
+		// Margin mode configuration
+		if req.MarginMode != "CROSS" {
+			if req.Leverage == "" {
+				return nil, fmt.Errorf("leverage is required for isolated margin mode")
+			}
+			args["leverage"] = req.Leverage
+		} else {
+			args["marginMode"] = req.MarginMode
+		}
+		if req.Type == "market" {
+			if req.Side == "buy" {
+				args["valueQty"] = req.ValueQty
+			} else {
+				args["qty"] = req.Qty
+			}
+		}
 	}
 
 	// Use the unified trading API message format
@@ -326,10 +296,6 @@ func (ws *PrivateWebSocket) PlaceOrder(req *OrderWSRequest) (*OrderWSResponse, e
 		"op":   operation,
 		"args": args,
 	}
-
-	// Log the message being sent for debugging
-	//msgBytes, _ := json.Marshal(msg)
-	json.Marshal(msg)
 
 	// Send order
 	ws.connMu.Lock()

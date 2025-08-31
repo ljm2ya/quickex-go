@@ -78,9 +78,8 @@ func (c *KucoinSpotClient) Connect(ctx context.Context) (int64, error) {
 	c.privateWS = NewPrivateWebSocket(c.apiKey, c.apiSecret, c.apiPassphrase, c.serverTimeDelta)
 	for {
 		if err := c.privateWS.Connect(); err != nil {
-			fmt.Printf("failed to connect private WebSocket: %v", err)
 			if retryCount >= 5 {
-				return 0, fmt.Errorf("failed to connect private WebSocket: %w", err)
+				panic(fmt.Errorf("failed to connect private WebSocket: %w", err))
 			}
 			retryCount += 1
 			time.Sleep(time.Second)
