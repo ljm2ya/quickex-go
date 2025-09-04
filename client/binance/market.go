@@ -20,6 +20,10 @@ func (b *BinanceClient) GetTicker(symbol string) (*core.Ticker, error) {
 	return &tckSlc[0], nil
 }
 
+func (b *BinanceClient) FetchQuotes(symbols []string) (map[string]core.Quote, error) {
+	return make(map[string]core.Quote), fmt.Errorf("not implemented yet")
+}
+
 func (b *BinanceClient) GetTickers(symbols []string) ([]core.Ticker, error) {
 	id := nextWSID()
 	req := map[string]interface{}{

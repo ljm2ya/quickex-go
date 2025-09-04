@@ -48,6 +48,10 @@ func (c *BybitClient) GetTickers(symbols []string) ([]core.Ticker, error) {
 	return out, nil
 }
 
+func (b *BybitClient) FetchQuotes(symbols []string) (map[string]core.Quote, error) {
+	return make(map[string]core.Quote), fmt.Errorf("not implemented yet")
+}
+
 func (c *BybitClient) GetOrderbook(symbol string, depth int64) (*core.Orderbook, error) {
 	resp, err := c.client.V5().Market().GetOrderbook(bybit.V5GetOrderbookParam{
 		Category: "spot", Symbol: symbol,
@@ -157,7 +161,7 @@ func (c *BybitClient) SubscribeQuotes(ctx context.Context, symbols []string, err
 			"op":   "subscribe",
 			"args": []string{fmt.Sprintf("orderbook.1.%s", symbol)},
 		}
-		
+
 		if err := conn.WriteJSON(subMsg); err != nil {
 			if errHandler != nil {
 				errHandler(fmt.Errorf("failed to subscribe to %s: %w", symbol, err))
@@ -201,12 +205,12 @@ func (c *BybitClient) SubscribeQuotes(ctx context.Context, symbols []string, err
 						continue
 					}
 					symbol := msg.Topic[12:] // Skip "orderbook.1."
-					
+
 					// Ensure we have valid bid/ask data
 					if len(msg.Data.Bids) > 0 && len(msg.Data.Asks) > 0 {
 						bid := msg.Data.Bids[0]
 						ask := msg.Data.Asks[0]
-						
+
 						if len(bid) >= 2 && len(ask) >= 2 {
 							quote := core.Quote{
 								Symbol:   symbol,

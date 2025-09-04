@@ -35,6 +35,29 @@ func (c *BybitFuturesClient) GetTicker(symbol string) (*core.Ticker, error) {
 	}, nil
 }
 
+func (c *BybitFuturesClient) FetchQuotes(symbols []string) (map[string]core.Quote, error) {
+	var out = make(map[string]core.Quote)
+	for _, s := range symbols {
+		resp, err := c.client.V5().Market().GetTickers(bybit.V5GetTickersParam{
+			Category: "linear", Symbol: &s,
+		})
+		if err != nil || len(resp.Result.LinearInverse.List) == 0 {
+			return out, err
+		}
+		t := resp.Result.LinearInverse.List[0]
+		out[s] = core.Quote{
+			Symbol:   t.Symbol,
+			BidPrice: decimal.RequireFromString(t.Bid1Price),
+			BidQty:   decimal.RequireFromString(t.Bid1Size),
+			AskPrice: decimal.RequireFromString(t.Ask1Price),
+			AskQty:   decimal.RequireFromString(t.Ask1Size),
+			Time:     time.Now(),
+		}
+		time.Sleep(time.Second / 100)
+	}
+	return out, nil
+}
+
 func (c *BybitFuturesClient) GetTickers(symbols []string) ([]core.Ticker, error) {
 	var out []core.Ticker
 	for _, s := range symbols {

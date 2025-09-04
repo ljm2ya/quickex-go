@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -147,4 +148,8 @@ func (u *UpbitClient) FetchMarketRules(quotes []string) ([]core.MarketRule, erro
 	}
 
 	return allRules, nil
+}
+
+func (u *UpbitClient) FetchQuotes(symbols []string) (map[string]core.Quote, error) {
+	return make(map[string]core.Quote), fmt.Errorf("not implemented yet")
 }

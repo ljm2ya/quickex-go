@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"github.com/Kucoin/kucoin-universal-sdk/sdk/golang/pkg/generate/spot/market"
 	"github.com/ljm2ya/quickex-go/core"
@@ -17,6 +18,41 @@ func (c *KucoinSpotClient) SubscribeQuotes(ctx context.Context, symbols []string
 	return c.NewWebSocketConnection(ctx, symbols, errHandler)
 }
 
+func (c *KucoinSpotClient) FetchQuotes(symbols []string) (map[string]core.Quote, error) {
+	out := make(map[string]core.Quote)
+
+	restService := c.client.RestService()
+	spotService := restService.GetSpotService()
+	marketAPI := spotService.GetMarketAPI()
+
+	allTickersResp, err := marketAPI.GetAllTickers(context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get quotes: %w", err)
+	}
+	
+	// Create a set of requested symbols for quick lookup
+	requestedSymbols := make(map[string]bool)
+	for _, symbol := range symbols {
+		requestedSymbols[symbol] = true
+	}
+	
+	for _, ticker := range allTickersResp.Ticker {
+		// Only include tickers for requested symbols
+		// If no symbols specified, return all
+		if len(symbols) > 0 && !requestedSymbols[ticker.Symbol] {
+			continue
+		}
+		out[ticker.Symbol] = core.Quote{
+			Symbol:   ticker.Symbol,
+			BidPrice: decimal.RequireFromString(ticker.Buy),
+			BidQty:   decimal.RequireFromString(ticker.BestBidSize),
+			AskPrice: decimal.RequireFromString(ticker.Sell),
+			AskQty:   decimal.RequireFromString(ticker.BestAskSize),
+			Time:     time.Now(),
+		}
+	}
+	return out, nil
+}
 
 func (c *KucoinSpotClient) FetchMarketRules(quotes []string) ([]core.MarketRule, error) {
 	restService := c.client.RestService()

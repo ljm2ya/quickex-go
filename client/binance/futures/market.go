@@ -15,6 +15,10 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+func (b *BinanceClient) FetchQuotes(symbols []string) (map[string]core.Quote, error) {
+	return make(map[string]core.Quote), fmt.Errorf("not implemented yet")
+}
+
 func (b *BinanceClient) GetTicker(symbol string) (*core.Ticker, error) {
 	id := nextWSID()
 	req := map[string]interface{}{

@@ -21,6 +21,8 @@ type WebSocketConnection struct {
 	subscriptions []string
 	ctx          context.Context
 	cancel       context.CancelFunc
+	closed       bool
+	closedMu     sync.RWMutex
 }
 
 // NewWebSocketConnection creates a new WebSocket connection for the given symbols
@@ -72,12 +74,19 @@ func (c *KucoinSpotClient) NewWebSocketConnection(ctx context.Context, symbols [
 	// Monitor context cancellation
 	go func() {
 		<-connCtx.Done()
+		
+		// Mark connection as closed
+		conn.closedMu.Lock()
+		conn.closed = true
+		conn.closedMu.Unlock()
+		
 		// Unsubscribe all
 		for _, subId := range conn.subscriptions {
 			ws.UnSubscribe(subId)
 		}
 		ws.Stop()
-		// Close channels
+		
+		// Close channels after marking as closed
 		conn.channelsMu.Lock()
 		for _, ch := range conn.channels {
 			close(ch)
@@ -142,6 +151,14 @@ func (conn *WebSocketConnection) handleTickerEvent(topic string, subject string,
 		AskQty:   bestAskSize,
 		Time:     timestamp,
 	}
+	
+	// Check if connection is closed before sending
+	conn.closedMu.RLock()
+	if conn.closed {
+		conn.closedMu.RUnlock()
+		return nil // Connection is closed, ignore the event
+	}
+	conn.closedMu.RUnlock()
 	
 	// Send to appropriate channel
 	conn.channelsMu.RLock()
