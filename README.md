@@ -6,6 +6,8 @@ A Go library for cryptocurrency exchange trading with unified interfaces for spo
 
 - **Binance** (Spot & Futures)
 - **Bybit** (Spot & Futures)
+- **OKX** (Spot & Futures)
+- **Phemex** (Spot & Futures)
 
 ## Installation
 
@@ -105,11 +107,15 @@ if err != nil {
 client.ExchangeBinance               // Binance Spot (Production)
 client.ExchangeBinanceTestnet        // Binance Spot (Testnet)
 client.ExchangeBybit                 // Bybit Spot
+client.ExchangeOKX                   // OKX Spot
+client.ExchangePhemex                // Phemex Spot
 
 // Futures Trading  
 client.ExchangeBinanceFutures        // Binance Futures (Production) 
 client.ExchangeBinanceFuturesTestnet // Binance Futures (Testnet)
 client.ExchangeBybitFutures          // Bybit Futures
+client.ExchangeOKXFutures            // OKX Futures
+client.ExchangePhemexFutures         // Phemex Futures
 ```
 
 ## Key Features
@@ -211,6 +217,24 @@ MIT License - see LICENSE file for details.
 3. Make your changes
 4. Add tests (they won't be committed due to .gitignore)
 5. Submit a pull request
+
+## Exchange-Specific Notes
+
+### Phemex
+- **Spot Trading**: Uses unique parameter format (`baseQtyEv`, `quoteQtyEv`, `qtyType`) instead of standard `orderQty`
+- **Symbol Format**: Spot symbols use 's' prefix (e.g., `sDOGEUSDT` instead of `DOGE-USDT`)
+- **WebSocket**: Spot trading orders only supported via REST API (WebSocket fallback implemented)
+- **Scaling**: All values scaled by 1e8 (100,000,000)
+- **Testing**: Real trading tests completed successfully with correct parameter format
+
+### KuCoin
+- Spot trading fully implemented and tested
+
+### Bybit & Binance
+- Both spot and futures trading fully supported
+
+### OKX
+- WebSocket-first implementation with REST fallback
 
 ## Support
 
