@@ -20,3 +20,5 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 )
+
+replace github.com/hirokisan/bybit/v2 => ../bybit

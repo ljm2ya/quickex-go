@@ -245,6 +245,22 @@ func (c *BybitClient) ToSymbol(asset, quote string) string {
 	return asset + quote
 }
 
+// ToAsset extracts the asset from a symbol (reverse of ToSymbol)
+func (c *BybitClient) ToAsset(symbol string) string {
+	// Bybit uses simple concatenation: BTCUSDT
+	// Common quote currencies to check (ordered by likelihood)
+	quotes := []string{"USDT", "USDC", "BTC", "ETH", "USD", "EUR", "DAI"}
+	
+	for _, quote := range quotes {
+		if len(symbol) > len(quote) && symbol[len(symbol)-len(quote):] == quote {
+			return symbol[:len(symbol)-len(quote)]
+		}
+	}
+	
+	// If no match found, return the symbol as-is (shouldn't happen with valid symbols)
+	return symbol
+}
+
 // --- HMAC-SHA256 서명 ---
 func hmacSHA256(msg, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))

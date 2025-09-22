@@ -29,25 +29,29 @@ func (c *KucoinSpotClient) FetchQuotes(symbols []string) (map[string]core.Quote,
 	if err != nil {
 		return nil, fmt.Errorf("failed to get quotes: %w", err)
 	}
-	
+
 	// Create a set of requested symbols for quick lookup
 	requestedSymbols := make(map[string]bool)
 	for _, symbol := range symbols {
 		requestedSymbols[symbol] = true
 	}
-	
+
 	for _, ticker := range allTickersResp.Ticker {
 		// Only include tickers for requested symbols
 		// If no symbols specified, return all
 		if len(symbols) > 0 && !requestedSymbols[ticker.Symbol] {
 			continue
 		}
+		bidPrice, _ := decimal.NewFromString(ticker.Buy)
+		bidQty, _ := decimal.NewFromString(ticker.BestBidSize)
+		AskPrice, _ := decimal.NewFromString(ticker.Sell)
+		AskQty, _ := decimal.NewFromString(ticker.BestAskSize)
 		out[ticker.Symbol] = core.Quote{
 			Symbol:   ticker.Symbol,
-			BidPrice: decimal.RequireFromString(ticker.Buy),
-			BidQty:   decimal.RequireFromString(ticker.BestBidSize),
-			AskPrice: decimal.RequireFromString(ticker.Sell),
-			AskQty:   decimal.RequireFromString(ticker.BestAskSize),
+			BidPrice: bidPrice,
+			BidQty:   bidQty,
+			AskPrice: AskPrice,
+			AskQty:   AskQty,
 			Time:     time.Now(),
 		}
 	}

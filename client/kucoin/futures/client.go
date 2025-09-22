@@ -120,3 +120,24 @@ func (c *KucoinFuturesClient) Close() error {
 func (c *KucoinFuturesClient) ToSymbol(asset, quote string) string {
 	return asset + quote + "M"
 }
+
+// ToAsset extracts the asset from a symbol (reverse of ToSymbol)
+func (c *KucoinFuturesClient) ToAsset(symbol string) string {
+	// KuCoin Futures uses concatenation with "M" suffix: BTCUSDTM
+	// First, remove the "M" suffix if present
+	if len(symbol) > 1 && symbol[len(symbol)-1:] == "M" {
+		symbol = symbol[:len(symbol)-1]
+	}
+	
+	// Common quote currencies to check (ordered by likelihood)
+	quotes := []string{"USDT", "USD", "BTC", "ETH"}
+	
+	for _, quote := range quotes {
+		if len(symbol) > len(quote) && symbol[len(symbol)-len(quote):] == quote {
+			return symbol[:len(symbol)-len(quote)]
+		}
+	}
+	
+	// If no match found, return the symbol as-is (shouldn't happen with valid symbols)
+	return symbol
+}

@@ -3,6 +3,7 @@ package kucoin
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Kucoin/kucoin-universal-sdk/sdk/golang/pkg/api"
@@ -108,4 +109,17 @@ func (c *KucoinSpotClient) Close() error {
 // KuCoin format: BTC-USDT (hyphen separator)
 func (c *KucoinSpotClient) ToSymbol(asset, quote string) string {
 	return asset + "-" + quote
+}
+
+// ToAsset extracts the asset from a symbol (reverse of ToSymbol)
+func (c *KucoinSpotClient) ToAsset(symbol string) string {
+	// KuCoin uses hyphen separator: BTC-USDT
+	// Split by hyphen and return the first part
+	parts := strings.Split(symbol, "-")
+	if len(parts) >= 2 {
+		return parts[0]
+	}
+	
+	// If no hyphen found, return the symbol as-is (shouldn't happen with valid symbols)
+	return symbol
 }

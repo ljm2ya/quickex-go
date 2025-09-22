@@ -11,6 +11,64 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// parseOrderStatus converts Upbit order state to core.OrderStatus
+func parseOrderStatus(state string) core.OrderStatus {
+	switch state {
+	case "wait", "watch":
+		return core.OrderStatusOpen
+	case "done":
+		return core.OrderStatusFilled
+	case "cancel":
+		return core.OrderStatusCanceled
+	default:
+		return core.OrderStatusOpen
+	}
+}
+
+// createOrderParams creates common order parameters
+func createOrderParams(symbol, side, ordType string, identifier string) map[string]string {
+	params := map[string]string{
+		"market":     symbol,
+		"side":       side,
+		"ord_type":   ordType,
+		"identifier": identifier,
+	}
+	return params
+}
+
+// parseOrderResponse converts UpbitOrder to core.OrderResponse
+func parseOrderResponse(order UpbitOrder, tif string) *core.OrderResponse {
+	var side string
+	if order.Side == "bid" {
+		side = "BUY"
+	} else {
+		side = "SELL"
+	}
+
+	status := parseOrderStatus(order.State)
+	price, _ := decimal.NewFromString(order.Price)
+	quantity, _ := decimal.NewFromString(order.Volume)
+	createdAt, _ := time.Parse(time.RFC3339, order.CreatedAt)
+
+	// Determine IsQuoteQuantity for market orders
+	isQuoteQuantity := false
+	if order.OrdType == "price" {
+		isQuoteQuantity = true
+	}
+
+	return &core.OrderResponse{
+		OrderID:         order.UUID,
+		Symbol:          order.Market,
+		Side:            side,
+		Tif:             core.TimeInForce(tif),
+		Status:          status,
+		Price:           price,
+		Quantity:        quantity,
+		CreateTime:      createdAt,
+		IsQuoteQuantity: isQuoteQuantity,
+	}
+}
+
 // FetchOrder implements core.PrivateClient interface
 func (u *UpbitClient) FetchOrder(symbol, orderId string) (*core.OrderResponseFull, error) {
 	params := make(map[string]string)
@@ -31,57 +89,47 @@ func (u *UpbitClient) FetchOrder(symbol, orderId string) (*core.OrderResponseFul
 	}
 
 	// Convert to core types
-	var status core.OrderStatus
-	switch order.State {
-	case "wait":
-		status = core.OrderStatusOpen
-	case "done":
-		status = core.OrderStatusFilled
-	case "cancel":
-		status = core.OrderStatusCanceled
-	default:
-		status = core.OrderStatusOpen
-	}
+	// Use helper function for basic order response
+	baseResponse := parseOrderResponse(order, string(core.TimeInForceGTC))
 
-	var side string
-	if order.Side == "bid" {
-		side = "BUY"
-	} else {
-		side = "SELL"
-	}
-
-	price, _ := decimal.NewFromString(order.Price)
-	quantity, _ := decimal.NewFromString(order.Volume)
 	executedQty, _ := decimal.NewFromString(order.ExecutedVolume)
-	createdAt, _ := time.Parse(time.RFC3339, order.CreatedAt)
+	paidFee, _ := decimal.NewFromString(order.PaidFee)
+
+	// Calculate average price from trades array
+	avgPrice := decimal.Zero
+	if len(order.Trades) > 0 {
+		totalValue := decimal.Zero
+		totalVolume := decimal.Zero
+
+		for _, trade := range order.Trades {
+			tradePrice, _ := decimal.NewFromString(trade.Price)
+			tradeVolume, _ := decimal.NewFromString(trade.Volume)
+			totalValue = totalValue.Add(tradePrice.Mul(tradeVolume))
+			totalVolume = totalVolume.Add(tradeVolume)
+		}
+
+		if totalVolume.IsPositive() {
+			avgPrice = totalValue.Div(totalVolume)
+		}
+	}
 
 	return &core.OrderResponseFull{
-		OrderResponse: core.OrderResponse{
-			OrderID:    order.UUID,
-			Symbol:     order.Market,
-			Side:       side,
-			Tif:        core.TimeInForceGTC,
-			Status:     status,
-			Price:      price,
-			Quantity:   quantity,
-			CreateTime: createdAt,
-		},
-		AvgPrice:    price, // Upbit doesn't provide avg price
-		ExecutedQty: executedQty,
-		UpdateTime:  createdAt, // Upbit doesn't provide update time
+		OrderResponse:   *baseResponse,
+		AvgPrice:        avgPrice,
+		ExecutedQty:     executedQty,
+		UpdateTime:      baseResponse.CreateTime, // Upbit doesn't provide separate update time
+		Commission:      paidFee,
+		CommissionAsset: "KRW", // Upbit doesn't specify commission asset
 	}, nil
 }
 
 // LimitBuy implements core.PrivateClient interface
 func (u *UpbitClient) LimitBuy(symbol string, quantity, price decimal.Decimal, tif string) (*core.OrderResponse, error) {
-	params := map[string]string{
-		"market":     symbol,
-		"side":       "bid",
-		"ord_type":   "limit",
-		"price":      price.String(),
-		"volume":     quantity.String(),
-		"identifier": uuid.New().String(),
-	}
+	// Upbit doesn't support traditional TIF values, but we can simulate some behaviors
+	// For IOC and PostOnly, we'll just use regular limit orders since Upbit doesn't support these
+	params := createOrderParams(symbol, "bid", "limit", uuid.New().String())
+	params["price"] = price.String()
+	params["volume"] = quantity.String()
 
 	body, err := u.makeRequest("POST", "/v1/orders", params)
 	if err != nil {
@@ -93,44 +141,14 @@ func (u *UpbitClient) LimitBuy(symbol string, quantity, price decimal.Decimal, t
 		return nil, err
 	}
 
-	var status core.OrderStatus
-	switch order.State {
-	case "wait":
-		status = core.OrderStatusOpen
-	case "done":
-		status = core.OrderStatusFilled
-	case "cancel":
-		status = core.OrderStatusCanceled
-	default:
-		status = core.OrderStatusOpen
-	}
-
-	orderPrice, _ := decimal.NewFromString(order.Price)
-	orderQuantity, _ := decimal.NewFromString(order.Volume)
-	createdAt, _ := time.Parse(time.RFC3339, order.CreatedAt)
-
-	return &core.OrderResponse{
-		OrderID:    order.UUID,
-		Symbol:     order.Market,
-		Side:       "BUY",
-		Tif:        core.TimeInForce(tif),
-		Status:     status,
-		Price:      orderPrice,
-		Quantity:   orderQuantity,
-		CreateTime: createdAt,
-	}, nil
+	return parseOrderResponse(order, tif), nil
 }
 
 // LimitSell implements core.PrivateClient interface
 func (u *UpbitClient) LimitSell(symbol string, quantity, price decimal.Decimal, tif string) (*core.OrderResponse, error) {
-	params := map[string]string{
-		"market":     symbol,
-		"side":       "ask",
-		"ord_type":   "limit",
-		"price":      price.String(),
-		"volume":     quantity.String(),
-		"identifier": uuid.New().String(),
-	}
+	params := createOrderParams(symbol, "ask", "limit", uuid.New().String())
+	params["price"] = price.String()
+	params["volume"] = quantity.String()
 
 	body, err := u.makeRequest("POST", "/v1/orders", params)
 	if err != nil {
@@ -142,43 +160,13 @@ func (u *UpbitClient) LimitSell(symbol string, quantity, price decimal.Decimal, 
 		return nil, err
 	}
 
-	var status core.OrderStatus
-	switch order.State {
-	case "wait":
-		status = core.OrderStatusOpen
-	case "done":
-		status = core.OrderStatusFilled
-	case "cancel":
-		status = core.OrderStatusCanceled
-	default:
-		status = core.OrderStatusOpen
-	}
-
-	orderPrice, _ := decimal.NewFromString(order.Price)
-	orderQuantity, _ := decimal.NewFromString(order.Volume)
-	createdAt, _ := time.Parse(time.RFC3339, order.CreatedAt)
-
-	return &core.OrderResponse{
-		OrderID:    order.UUID,
-		Symbol:     order.Market,
-		Side:       "SELL",
-		Tif:        core.TimeInForce(tif),
-		Status:     status,
-		Price:      orderPrice,
-		Quantity:   orderQuantity,
-		CreateTime: createdAt,
-	}, nil
+	return parseOrderResponse(order, tif), nil
 }
 
 // MarketBuy implements core.PrivateClient interface
 func (u *UpbitClient) MarketBuy(symbol string, quoteQuantity decimal.Decimal) (*core.OrderResponse, error) {
-	params := map[string]string{
-		"market":     symbol,
-		"side":       "bid",
-		"ord_type":   "price",
-		"price":      quoteQuantity.String(),
-		"identifier": uuid.New().String(),
-	}
+	params := createOrderParams(symbol, "bid", "price", uuid.New().String())
+	params["price"] = quoteQuantity.String() // For market buy, price field contains quote amount
 
 	body, err := u.makeRequest("POST", "/v1/orders", params)
 	if err != nil {
@@ -190,43 +178,14 @@ func (u *UpbitClient) MarketBuy(symbol string, quoteQuantity decimal.Decimal) (*
 		return nil, err
 	}
 
-	var status core.OrderStatus
-	switch order.State {
-	case "wait":
-		status = core.OrderStatusOpen
-	case "done":
-		status = core.OrderStatusFilled
-	case "cancel":
-		status = core.OrderStatusCanceled
-	default:
-		status = core.OrderStatusOpen
-	}
-
-	orderPrice, _ := decimal.NewFromString(order.Price)
-	orderQuantity, _ := decimal.NewFromString(order.Volume)
-	createdAt, _ := time.Parse(time.RFC3339, order.CreatedAt)
-
-	return &core.OrderResponse{
-		OrderID:    order.UUID,
-		Symbol:     order.Market,
-		Side:       "BUY",
-		Tif:        core.TimeInForceGTC,
-		Status:     status,
-		Price:      orderPrice,
-		Quantity:   orderQuantity,
-		CreateTime: createdAt,
-	}, nil
+	// parseOrderResponse will set IsQuoteQuantity correctly based on ord_type
+	return parseOrderResponse(order, string(core.TimeInForceGTC)), nil
 }
 
 // MarketSell implements core.PrivateClient interface
 func (u *UpbitClient) MarketSell(symbol string, quantity decimal.Decimal) (*core.OrderResponse, error) {
-	params := map[string]string{
-		"market":     symbol,
-		"side":       "ask",
-		"ord_type":   "market",
-		"volume":     quantity.String(),
-		"identifier": uuid.New().String(),
-	}
+	params := createOrderParams(symbol, "ask", "market", uuid.New().String())
+	params["volume"] = quantity.String()
 
 	body, err := u.makeRequest("POST", "/v1/orders", params)
 	if err != nil {
@@ -238,32 +197,7 @@ func (u *UpbitClient) MarketSell(symbol string, quantity decimal.Decimal) (*core
 		return nil, err
 	}
 
-	var status core.OrderStatus
-	switch order.State {
-	case "wait":
-		status = core.OrderStatusOpen
-	case "done":
-		status = core.OrderStatusFilled
-	case "cancel":
-		status = core.OrderStatusCanceled
-	default:
-		status = core.OrderStatusOpen
-	}
-
-	orderPrice, _ := decimal.NewFromString(order.Price)
-	orderQuantity, _ := decimal.NewFromString(order.Volume)
-	createdAt, _ := time.Parse(time.RFC3339, order.CreatedAt)
-
-	return &core.OrderResponse{
-		OrderID:    order.UUID,
-		Symbol:     order.Market,
-		Side:       "SELL",
-		Tif:        core.TimeInForceGTC,
-		Status:     status,
-		Price:      orderPrice,
-		Quantity:   orderQuantity,
-		CreateTime: createdAt,
-	}, nil
+	return parseOrderResponse(order, string(core.TimeInForceGTC)), nil
 }
 
 // StopLossSell implements core.PrivateClient interface
@@ -295,39 +229,7 @@ func (u *UpbitClient) CancelOrder(symbol, orderId string) (*core.OrderResponse, 
 		return nil, err
 	}
 
-	var status core.OrderStatus
-	switch order.State {
-	case "wait":
-		status = core.OrderStatusOpen
-	case "done":
-		status = core.OrderStatusFilled
-	case "cancel":
-		status = core.OrderStatusCanceled
-	default:
-		status = core.OrderStatusOpen
-	}
-
-	var side string
-	if order.Side == "bid" {
-		side = "BUY"
-	} else {
-		side = "SELL"
-	}
-
-	orderPrice, _ := decimal.NewFromString(order.Price)
-	orderQuantity, _ := decimal.NewFromString(order.Volume)
-	createdAt, _ := time.Parse(time.RFC3339, order.CreatedAt)
-
-	return &core.OrderResponse{
-		OrderID:    order.UUID,
-		Symbol:     order.Market,
-		Side:       side,
-		Tif:        core.TimeInForceGTC,
-		Status:     status,
-		Price:      orderPrice,
-		Quantity:   orderQuantity,
-		CreateTime: createdAt,
-	}, nil
+	return parseOrderResponse(order, string(core.TimeInForceGTC)), nil
 }
 
 // CancelAll implements core.PrivateClient interface

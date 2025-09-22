@@ -4,10 +4,12 @@ import (
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -84,13 +86,24 @@ func (u *UpbitClient) makeRequest(method, endpoint string, params map[string]str
 	}
 
 	var req *http.Request
-	if method == "GET" && len(params) > 0 {
+	if (method == "GET" || method == "DELETE") && len(params) > 0 {
+		// For GET and DELETE requests, add parameters to query string
 		urlValues := url.Values{}
 		for key, value := range params {
 			urlValues.Add(key, value)
 		}
 		fullURL += "?" + urlValues.Encode()
 		req, err = http.NewRequest(method, fullURL, nil)
+	} else if method == "POST" && len(params) > 0 {
+		// For POST requests, send parameters as JSON in body
+		jsonBody, err := json.Marshal(params)
+		if err != nil {
+			return nil, err
+		}
+		req, err = http.NewRequest(method, fullURL, strings.NewReader(string(jsonBody)))
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		req, err = http.NewRequest(method, fullURL, nil)
 	}
@@ -113,7 +126,7 @@ func (u *UpbitClient) makeRequest(method, endpoint string, params map[string]str
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		return nil, fmt.Errorf("API error: %d - %s", resp.StatusCode, string(body))
 	}
 
@@ -124,4 +137,17 @@ func (u *UpbitClient) makeRequest(method, endpoint string, params map[string]str
 // Upbit format: USDT-BTC (quote-asset, reversed order with hyphen)
 func (u *UpbitClient) ToSymbol(asset, quote string) string {
 	return quote + "-" + asset
+}
+
+// ToAsset extracts the asset from a symbol (reverse of ToSymbol)
+func (u *UpbitClient) ToAsset(symbol string) string {
+	// Upbit uses reversed order with hyphen: USDT-BTC (quote-asset)
+	// Split by hyphen and return the second part
+	parts := strings.Split(symbol, "-")
+	if len(parts) >= 2 {
+		return parts[1] // Return the second part (asset)
+	}
+	
+	// If no hyphen found, return the symbol as-is (shouldn't happen with valid symbols)
+	return symbol
 }

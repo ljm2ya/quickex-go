@@ -205,7 +205,6 @@ func (c *BybitClient) LimitSell(symbol string, qty, price decimal.Decimal, tif s
 		OrderType:   "Limit",
 		Qty:         qty,
 		Price:       price,
-		ReduceOnly:  true,
 		TimeInForce: tif,
 	}
 	return c.wsPlaceOrder(opt)

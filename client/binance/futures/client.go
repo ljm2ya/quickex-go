@@ -320,3 +320,19 @@ func afterConnect(b *BinanceClient) core.WsAfterConnectFunc {
 func (b *BinanceClient) ToSymbol(asset, quote string) string {
 	return asset + quote
 }
+
+// ToAsset extracts the asset from a symbol (reverse of ToSymbol)
+func (b *BinanceClient) ToAsset(symbol string) string {
+	// Binance Futures uses simple concatenation: BTCUSDT
+	// Common quote currencies to check (ordered by likelihood)
+	quotes := []string{"USDT", "BUSD", "USDC", "BTC", "ETH", "BNB"}
+	
+	for _, quote := range quotes {
+		if len(symbol) > len(quote) && symbol[len(symbol)-len(quote):] == quote {
+			return symbol[:len(symbol)-len(quote)]
+		}
+	}
+	
+	// If no match found, return the symbol as-is (shouldn't happen with valid symbols)
+	return symbol
+}

@@ -155,3 +155,18 @@ const (
 	ERC20 Chain = "Ethereum"
 	BASE  Chain = "Base Mainnet"
 )
+
+// MarginMode represents the margin mode for futures trading
+type MarginMode string
+
+const (
+	MarginModeCross    MarginMode = "CROSS"
+	MarginModeIsolated MarginMode = "ISOLATED"
+)
+
+// FundingRate represents funding rate information
+type FundingRate struct {
+	Rate         decimal.Decimal
+	NextTime     int64           // Unix timestamp in seconds
+	PreviousRate decimal.Decimal
+}

@@ -11,6 +11,7 @@ type PublicClient interface {
 	FetchQuotes(symbols []string) (map[string]Quote, error)
 
 	ToSymbol(asset, quote string) string
+	ToAsset(symbol string) string
 	FetchMarketRules(quotes []string) ([]MarketRule, error)
 }
 
@@ -38,4 +39,13 @@ type TransactionClient interface {
 	FetchDepositAddress(asset string, chain Chain) (string, error)
 	Withdraw(asset string, chain Chain, address, tag string, amount decimal.Decimal) (string, error)
 	FetchWithdrawTxid(withdrawId string) (string, error)
+}
+
+// PrivateClient is enough to manage linear order for cross margin futures account, it is needed if you need risk managing
+type FuturesClient interface {
+	PrivateClient
+	SetLeverage(ctx context.Context, symbol string, leverage int) error
+	GetLiquidationPrice(ctx context.Context, symbol string) (decimal.Decimal, error)
+	GetFundingRate(ctx context.Context, symbol string) (*FundingRate, error)
+	SetMarginMode(ctx context.Context, mode MarginMode) error
 }

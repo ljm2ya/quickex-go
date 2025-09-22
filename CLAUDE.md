@@ -127,3 +127,15 @@ cp client/test_config.toml.example client/test_config.toml
 # Run tests
 cd client && go test -v
 ```
+
+### Testing Guidelines
+- **NEVER create mock tests** - All tests should use real API credentials from test_config.toml
+- The project has all necessary credentials configured for testing
+- Focus on integration tests that verify actual exchange behavior
+- Mock tests hide real API behaviors and should be avoided
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.

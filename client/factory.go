@@ -15,12 +15,12 @@ import (
 	bybitFutures "github.com/ljm2ya/quickex-go/client/bybit/futures"
 	kucoin "github.com/ljm2ya/quickex-go/client/kucoin"
 	kucoinFutures "github.com/ljm2ya/quickex-go/client/kucoin/futures"
-	okx "github.com/ljm2ya/quickex-go/client/okx"
-	okxFutures "github.com/ljm2ya/quickex-go/client/okx/futures"
-	phemex "github.com/ljm2ya/quickex-go/client/phemex"
-	phemexFutures "github.com/ljm2ya/quickex-go/client/phemex/futures"
+	//okx "github.com/ljm2ya/quickex-go/client/okx"
+	//okxFutures "github.com/ljm2ya/quickex-go/client/okx/futures"
+	//phemex "github.com/ljm2ya/quickex-go/client/phemex"
+	//phemexFutures "github.com/ljm2ya/quickex-go/client/phemex/futures"
+	upbit "github.com/ljm2ya/quickex-go/client/upbit"
 	"github.com/ljm2ya/quickex-go/core"
-	//upbit "github.com/ljm2ya/quickex-go/client/upbit"
 )
 
 type Exchanges string
@@ -107,11 +107,11 @@ func NewPrivateClient(exchange, apiKey, secret string, secondary ...string) core
 	case string(ExchangeKucoin):
 		return kucoin.NewClient(apiKey, secret, sec) // KuCoin uses passphrase as third param
 	case string(ExchangeOKX):
-		return okx.NewClient(apiKey, secret, sec) // OKX uses passphrase as third param
+		//return okx.NewClient(apiKey, secret, sec) // OKX uses passphrase as third param
 	case string(ExchangePhemex):
-		return phemex.NewClient(apiKey, secret) // Phemex uses apiKey and apiSecret
+		//return phemex.NewClient(apiKey, secret) // Phemex uses apiKey and apiSecret
 	case string(ExchangeUpbit):
-		//return upbit.NewUpbitClient(apiKey, secret)
+		return upbit.NewUpbitClient(apiKey, secret)
 	}
 	panic("no matching exchange: " + exchange)
 }
@@ -128,9 +128,9 @@ func NewPublicClient(exchange string) core.PublicClient {
 	case string(ExchangeKucoin):
 		return kucoin.NewClient("", "", "")
 	case string(ExchangeOKX):
-		return okx.NewClient("", "", "")
+		//return okx.NewClient("", "", "")
 	case string(ExchangePhemex):
-		return phemex.NewClient("", "")
+		//return phemex.NewClient("", "")
 	case string(ExchangeUpbit):
 		//return upbit.NewUpbitClient("", "")
 	}
@@ -161,9 +161,9 @@ func NewFuturesPrivateClient(exchange, apiKey, secret string, secondary ...strin
 	case string(ExchangeKucoinFutures):
 		return kucoinFutures.NewClient(apiKey, secret, sec) // KuCoin uses passphrase as third param
 	case string(ExchangeOKXFutures):
-		return okxFutures.NewClient(apiKey, secret, sec) // OKX uses passphrase as third param
+		//return okxFutures.NewClient(apiKey, secret, sec) // OKX uses passphrase as third param
 	case string(ExchangePhemexFutures):
-		return phemexFutures.NewClient(apiKey, secret) // Phemex uses apiKey and apiSecret
+		//return phemexFutures.NewClient(apiKey, secret) // Phemex uses apiKey and apiSecret
 	}
 	panic("no matching exchange: " + exchange)
 }
@@ -180,9 +180,34 @@ func NewFuturesPublicClient(exchange string) core.PublicClient {
 	case string(ExchangeKucoinFutures):
 		return kucoinFutures.NewClient("", "", "")
 	case string(ExchangeOKXFutures):
-		return okxFutures.NewClient("", "", "")
+		//return okxFutures.NewClient("", "", "")
 	case string(ExchangePhemexFutures):
-		return phemexFutures.NewClient("", "")
+		//return phemexFutures.NewClient("", "")
+	}
+	panic("no matching exchange: " + exchange)
+}
+
+// NewFuturesClient creates a new FuturesClient including full futures specific methods implemented
+func NewFuturesClient(exchange, apiKey, secret string, secondary ...string) core.FuturesClient {
+	//sec := ""
+	//if len(secondary) > 0 {
+	//sec = secondary[0]
+	//}
+	switch exchange {
+	case string(ExchangeBinanceFutures):
+		//privateKey, err := loadED25519PrivateKey(secret)
+		//if err != nil {
+		//panic(fmt.Errorf("failed to load Binance futures private key: %w", err))
+		//}
+		//return binanceFutures.NewClient(apiKey, privateKey)
+	case string(ExchangeBybitFutures):
+		return bybitFutures.NewClient(apiKey, secret)
+	case string(ExchangeKucoinFutures):
+		//return kucoinFutures.NewClient(apiKey, secret, sec) // KuCoin uses passphrase as third param
+	case string(ExchangeOKXFutures):
+		//return okxFutures.NewClient(apiKey, secret, sec) // OKX uses passphrase as third param
+	case string(ExchangePhemexFutures):
+		//return phemexFutures.NewClient(apiKey, secret) // Phemex uses apiKey and apiSecret
 	}
 	panic("no matching exchange: " + exchange)
 }
