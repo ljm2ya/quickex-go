@@ -29,7 +29,9 @@ type BinanceClient struct {
 	balancesMu sync.RWMutex
 	ordersMu   sync.RWMutex
 	wsRejectMu sync.Mutex
-	// ... other Binance-specific fields ...
+	apiKey     string
+	privateKey ed25519.PrivateKey
+	baseURL    string
 }
 
 func NewClient(apiKey string, prvKey ed25519.PrivateKey) *BinanceClient {
@@ -40,6 +42,9 @@ func NewClient(apiKey string, prvKey ed25519.PrivateKey) *BinanceClient {
 		balancesMu: sync.RWMutex{},
 		ordersMu:   sync.RWMutex{},
 		wsRejectMu: sync.Mutex{},
+		apiKey:     apiKey,
+		privateKey: prvKey,
+		baseURL:    "https://fapi.binance.com",
 	}
 	b.WsClient = core.NewWsClient(
 		binanceWsURL,
@@ -62,6 +67,9 @@ func NewTestClient(apiKey string, prvKey ed25519.PrivateKey) *BinanceClient {
 		balancesMu: sync.RWMutex{},
 		ordersMu:   sync.RWMutex{},
 		wsRejectMu: sync.Mutex{},
+		apiKey:     apiKey,
+		privateKey: prvKey,
+		baseURL:    "https://testnet.binancefuture.com",
 	}
 	b.WsClient = core.NewWsClient(
 		binanceTestnetWsURL,

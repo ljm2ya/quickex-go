@@ -202,12 +202,14 @@ type wsAccountPosition struct {
 	Symbol           string `json:"symbol"`
 	PositionSide     string `json:"positionSide"`
 	PositionAmt      string `json:"positionAmt"`
-	UnrealizedProfit string `json:"unrealizedProfit"`
+	UnrealizedProfit string `json:"unRealizedProfit"`
 	IsolatedMargin   string `json:"isolatedMargin"`
 	Notional         string `json:"notional"`
 	IsolatedWallet   string `json:"isolatedWallet"`
 	InitialMargin    string `json:"initialMargin"`
 	MaintMargin      string `json:"maintMargin"`
+	LiquidationPrice string `json:"liquidationPrice"`
+	MarkPrice        string `json:"markPrice"`
 	UpdateTime       int64  `json:"updateTime"`
 }
 

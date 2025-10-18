@@ -2,10 +2,12 @@ package bybit
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/hirokisan/bybit/v2"
 	"github.com/ljm2ya/quickex-go/core"
 	"github.com/shopspring/decimal"
+	"strconv"
 )
 
 func (c *BybitFuturesClient) GetCachedBalance(asset string, includeLocked bool) (float64, error) {
@@ -94,4 +96,43 @@ func (c *BybitFuturesClient) FetchBalance(asset string, includeLocked bool, futu
 		return decimal.Zero, err
 	}
 	return decimal.NewFromFloat(balance), nil
+}
+
+func (c *BybitFuturesClient) FetchPositionState(symbol string) (*core.PositionState, error) {
+	resp, err := c.client.V5().Position().GetPositionInfo(bybit.V5GetPositionInfoParam{
+		Category: bybit.CategoryV5Linear,
+		Symbol:   &symbol,
+	})
+	if err != nil || len(resp.Result.List) == 0 {
+		return nil, err
+	}
+	var side core.PositionSide
+	switch resp.Result.List[0].Side {
+	case bybit.SideBuy:
+		side = core.LONG
+	case bybit.SideSell:
+		side = core.SHORT
+	case "":
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("Invalid position side: %s", resp.Result.List[0].Side)
+	}
+	size, _ := decimal.NewFromString(resp.Result.List[0].Size)
+	avgPrice, _ := decimal.NewFromString(resp.Result.List[0].AvgPrice)
+	uPnl, _ := decimal.NewFromString(resp.Result.List[0].UnrealisedPnl)
+	rPnl, _ := decimal.NewFromString(resp.Result.List[0].CurRealisedPnl)
+	createdTimeInt, _ := strconv.ParseInt(resp.Result.List[0].CreatedTime, 10, 64)
+	createdTime := time.UnixMilli(createdTimeInt)
+	updatedTimeInt, _ := strconv.ParseInt(resp.Result.List[0].UpdatedTime, 10, 64)
+	updateTime := time.UnixMilli(updatedTimeInt)
+	return &core.PositionState{
+		Symbol:        resp.Result.List[0].Symbol,
+		Side:          side,
+		Size:          size,
+		AvgPrice:      avgPrice,
+		UnrealizedPnl: uPnl,
+		RealizedPnl:   rPnl,
+		CreatedTime:   createdTime,
+		UpdatedTime:   updateTime,
+	}, nil
 }
