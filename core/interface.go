@@ -45,7 +45,6 @@ type TransactionClient interface {
 type FuturesClient interface {
 	PrivateClient
 	SetLeverage(symbol string, leverage int) error
-	GetLiquidationPrice(symbol string) (decimal.Decimal, error)
 	GetFundingRate(symbol string) (*FundingRate, error)
 	SetMarginMode(symbol string, mode MarginMode) error
 	FetchPositionState(symbol string) (*PositionState, error)

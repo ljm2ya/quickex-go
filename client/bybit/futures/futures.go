@@ -30,35 +30,6 @@ func (c *BybitFuturesClient) SetLeverage(symbol string, leverage int) error {
 	return nil
 }
 
-// GetLiquidationPrice gets the liquidation price for the current position
-func (c *BybitFuturesClient) GetLiquidationPrice(symbol string) (decimal.Decimal, error) {
-	params := &bybit.V5GetPositionInfoParam{
-		Category: bybit.CategoryV5Linear,
-		Symbol:   &symbol,
-	}
-
-	resp, err := c.client.V5().Position().GetPositionInfo(*params)
-	if err != nil {
-		return decimal.Zero, fmt.Errorf("failed to get position info: %w", err)
-	}
-
-	if len(resp.Result.List) == 0 {
-		return decimal.Zero, fmt.Errorf("no position found for symbol %s", symbol)
-	}
-
-	position := resp.Result.List[0]
-	liqPrice := position.LiqPrice
-	if liqPrice == "" {
-		return decimal.Zero, fmt.Errorf("no liquidation price available")
-	}
-
-	liqPriceDecimal, err := decimal.NewFromString(liqPrice)
-	if err != nil {
-		return decimal.Zero, fmt.Errorf("failed to parse liquidation price: %w", err)
-	}
-
-	return liqPriceDecimal, nil
-}
 
 // GetFundingRate gets the funding rate for a specific symbol
 func (c *BybitFuturesClient) GetFundingRate(symbol string) (*core.FundingRate, error) {

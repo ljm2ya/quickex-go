@@ -142,14 +142,15 @@ type Position struct {
 }
 
 type PositionState struct {
-	Symbol        string
-	Side          PositionSide
-	Size          decimal.Decimal // always positive
-	AvgPrice      decimal.Decimal
-	UnrealizedPnl decimal.Decimal
-	RealizedPnl   decimal.Decimal
-	CreatedTime   time.Time
-	UpdatedTime   time.Time
+	Symbol           string
+	Side             PositionSide
+	Size             decimal.Decimal // always positive
+	AvgPrice         decimal.Decimal
+	UnrealizedPnl    decimal.Decimal
+	RealizedPnl      decimal.Decimal
+	LiquidationPrice decimal.Decimal
+	CreatedTime      time.Time
+	UpdatedTime      time.Time
 }
 
 type OrderFill struct {

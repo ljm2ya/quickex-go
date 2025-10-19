@@ -121,18 +121,26 @@ func (c *BybitFuturesClient) FetchPositionState(symbol string) (*core.PositionSt
 	avgPrice, _ := decimal.NewFromString(resp.Result.List[0].AvgPrice)
 	uPnl, _ := decimal.NewFromString(resp.Result.List[0].UnrealisedPnl)
 	rPnl, _ := decimal.NewFromString(resp.Result.List[0].CurRealisedPnl)
+
+	// Parse liquidation price
+	var liqPrice decimal.Decimal
+	if resp.Result.List[0].LiqPrice != "" {
+		liqPrice, _ = decimal.NewFromString(resp.Result.List[0].LiqPrice)
+	}
+
 	createdTimeInt, _ := strconv.ParseInt(resp.Result.List[0].CreatedTime, 10, 64)
 	createdTime := time.UnixMilli(createdTimeInt)
 	updatedTimeInt, _ := strconv.ParseInt(resp.Result.List[0].UpdatedTime, 10, 64)
 	updateTime := time.UnixMilli(updatedTimeInt)
 	return &core.PositionState{
-		Symbol:        resp.Result.List[0].Symbol,
-		Side:          side,
-		Size:          size,
-		AvgPrice:      avgPrice,
-		UnrealizedPnl: uPnl,
-		RealizedPnl:   rPnl,
-		CreatedTime:   createdTime,
-		UpdatedTime:   updateTime,
+		Symbol:           resp.Result.List[0].Symbol,
+		Side:             side,
+		Size:             size,
+		AvgPrice:         avgPrice,
+		UnrealizedPnl:    uPnl,
+		RealizedPnl:      rPnl,
+		LiquidationPrice: liqPrice,
+		CreatedTime:      createdTime,
+		UpdatedTime:      updateTime,
 	}, nil
 }

@@ -143,3 +143,90 @@ func (b *BinanceClient) FetchBalance(asset string, includeLocked bool, futuresPo
 	}
 	return decimal.NewFromFloat(balance), nil
 }
+
+// FetchPositionState implements core.FuturesClient interface
+func (b *BinanceClient) FetchPositionState(symbol string) (*core.PositionState, error) {
+	params := map[string]interface{}{
+		"symbol": symbol,
+	}
+
+	body, err := b.makeRestRequest("GET", "/fapi/v3/positionRisk", params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get position info: %w", err)
+	}
+
+	var positions []PositionRiskInfo
+	if err := json.Unmarshal(body, &positions); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal positions: %w", err)
+	}
+
+	// Find position for the specified symbol
+	for _, position := range positions {
+		if position.Symbol == symbol {
+			// Check if there's an actual position (non-zero position amount)
+			if position.PositionAmt == "0" || position.PositionAmt == "" {
+				return nil, nil // No position found
+			}
+
+			// Parse position side
+			var side core.PositionSide
+			switch position.PositionSide {
+			case "LONG":
+				side = core.LONG
+			case "SHORT":
+				side = core.SHORT
+			case "BOTH":
+				side = core.BOTH
+			default:
+				return nil, fmt.Errorf("invalid position side: %s", position.PositionSide)
+			}
+
+			// Parse decimal values
+			size, err := decimal.NewFromString(position.PositionAmt)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse position amount %s: %w", position.PositionAmt, err)
+			}
+			// Make size always positive
+			size = size.Abs()
+
+			avgPrice, err := decimal.NewFromString(position.EntryPrice)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse entry price %s: %w", position.EntryPrice, err)
+			}
+
+			unrealizedPnl, err := decimal.NewFromString(position.UnRealizedProfit)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse unrealized profit %s: %w", position.UnRealizedProfit, err)
+			}
+
+			// Parse liquidation price
+			var liqPrice decimal.Decimal
+			if position.LiquidationPrice != "" && position.LiquidationPrice != "0" {
+				liqPrice, err = decimal.NewFromString(position.LiquidationPrice)
+				if err != nil {
+					return nil, fmt.Errorf("failed to parse liquidation price %s: %w", position.LiquidationPrice, err)
+				}
+			}
+
+			// Binance doesn't provide realized PnL in position risk endpoint, set to zero
+			realizedPnl := decimal.Zero
+
+			// Convert update time from milliseconds
+			updatedTime := time.UnixMilli(position.UpdateTime)
+
+			return &core.PositionState{
+				Symbol:           position.Symbol,
+				Side:             side,
+				Size:             size,
+				AvgPrice:         avgPrice,
+				UnrealizedPnl:    unrealizedPnl,
+				RealizedPnl:      realizedPnl,
+				LiquidationPrice: liqPrice,
+				CreatedTime:      updatedTime, // Binance doesn't provide created time, use updated time
+				UpdatedTime:      updatedTime,
+			}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("position not found for symbol %s", symbol)
+}

@@ -131,43 +131,6 @@ type PositionRiskInfo struct {
 	UpdateTime       int64  `json:"updateTime"`
 }
 
-func (b *BinanceClient) GetLiquidationPrice(symbol string) (decimal.Decimal, error) {
-	params := map[string]interface{}{}
-
-	// Add symbol parameter if provided
-	if symbol != "" {
-		params["symbol"] = symbol
-	}
-
-	body, err := b.makeRestRequest("GET", "/fapi/v3/positionRisk", params)
-	if err != nil {
-		return decimal.Zero, fmt.Errorf("failed to get position info: %w", err)
-	}
-
-	var positions []PositionRiskInfo
-	if err := json.Unmarshal(body, &positions); err != nil {
-		return decimal.Zero, fmt.Errorf("failed to unmarshal positions: %w", err)
-	}
-
-	// Find position for the specified symbol
-	for _, position := range positions {
-		if position.Symbol == symbol {
-			// Parse liquidation price
-			if position.LiquidationPrice == "" || position.LiquidationPrice == "0" {
-				return decimal.Zero, fmt.Errorf("no liquidation price available for symbol %s", symbol)
-			}
-
-			liquidationPrice, err := decimal.NewFromString(position.LiquidationPrice)
-			if err != nil {
-				return decimal.Zero, fmt.Errorf("failed to parse liquidation price %s: %w", position.LiquidationPrice, err)
-			}
-
-			return liquidationPrice, nil
-		}
-	}
-
-	return decimal.Zero, fmt.Errorf("position not found for symbol %s", symbol)
-}
 
 // FundingRateInfo represents the response from the funding rate info API
 type FundingRateInfo struct {
