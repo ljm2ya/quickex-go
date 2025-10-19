@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/shopspring/decimal"
 	"github.com/ljm2ya/quickex-go/core"
+	"github.com/shopspring/decimal"
 	"golang.org/x/crypto/ed25519"
 )
 
@@ -19,6 +19,7 @@ const (
 	binanceWsURL        = "wss://ws-fapi.binance.com/ws-fapi/v1"
 	binanceTestnetWsURL = "wss://testnet.binancefuture.com/ws-fapi/v1"
 	wsLifetime          = 23*time.Hour + 50*time.Minute
+	commisionRate       = 0.0005
 )
 
 type BinanceClient struct {
@@ -334,13 +335,13 @@ func (b *BinanceClient) ToAsset(symbol string) string {
 	// Binance Futures uses simple concatenation: BTCUSDT
 	// Common quote currencies to check (ordered by likelihood)
 	quotes := []string{"USDT", "BUSD", "USDC", "BTC", "ETH", "BNB"}
-	
+
 	for _, quote := range quotes {
 		if len(symbol) > len(quote) && symbol[len(symbol)-len(quote):] == quote {
 			return symbol[:len(symbol)-len(quote)]
 		}
 	}
-	
+
 	// If no match found, return the symbol as-is (shouldn't happen with valid symbols)
 	return symbol
 }

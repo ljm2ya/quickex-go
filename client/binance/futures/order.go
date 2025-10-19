@@ -35,7 +35,7 @@ func (b *BinanceClient) LimitBuy(symbol string, quantity, price decimal.Decimal,
 }
 
 func (b *BinanceClient) LimitSell(symbol string, quantity, price decimal.Decimal, tif string) (*core.OrderResponse, error) {
-	opts := &OrderOptions{Quantity: quantity, Price: price, TimeInForce: tif, ReduceOnly: true}
+	opts := &OrderOptions{Quantity: quantity, Price: price, TimeInForce: tif}
 	return b.placeOrder(symbol, "SELL", "LIMIT", opts)
 }
 
@@ -45,7 +45,7 @@ func (b *BinanceClient) LimitMakerBuy(symbol string, quantity, price decimal.Dec
 }
 
 func (b *BinanceClient) LimitMakerSell(symbol string, quantity, price decimal.Decimal) (*core.OrderResponse, error) {
-	opts := &OrderOptions{Quantity: quantity, Price: price, ReduceOnly: true, TimeInForce: string(core.TimeInForceGTC)}
+	opts := &OrderOptions{Quantity: quantity, Price: price, TimeInForce: string(core.TimeInForceGTC)}
 	return b.placeOrder(symbol, "SELL", "LIMIT", opts)
 }
 
@@ -339,47 +339,32 @@ func (b *BinanceClient) FetchOrder(symbol, orderId string) (*core.OrderResponseF
 		return nil, err
 	}
 	ord := wsResp.Result
-
-	params = map[string]interface{}{"symbol": symbol, "orderId": orderIdInt, "timestamp": time.Now().UnixMilli()}
-	id = nextWSID()
-	req = map[string]interface{}{
-		"id":     id,
-		"method": "myTrades",
-		"params": params,
-	}
-	root, err = b.SendRequest(req)
-	if err != nil {
-		return nil, err
-	}
-	var wsTradeResp WsTradeResponse
-	rootByte, _ = json.Marshal(root)
-	if err := wsTradeResp.UnmarshalJSON(rootByte); err != nil {
-		return nil, err
-	}
-	trade := wsTradeResp.Result
-
-	var totalProduct, totalFill, totalCommission decimal.Decimal
-	for _, fill := range trade {
-		qty := decimal.RequireFromString(fill.Qty)
-		totalProduct.Add(qty.Mul(decimal.RequireFromString(fill.Price)))
-		totalFill.Add(decimal.RequireFromString(fill.Qty))
-		totalCommission.Add(decimal.RequireFromString(fill.Commission))
+	price, _ := decimal.NewFromString(ord.Price)
+	avgPrice, _ := decimal.NewFromString(ord.AvgPrice)
+	execQty, _ := decimal.NewFromString(ord.ExecutedQty)
+	var side, commAsset string
+	if ord.Side == "BUY" {
+		side = "buy"
+		commAsset = "USDT"
+	} else if ord.Side == "SELL" {
+		side = "sell"
+		commAsset = strings.TrimSuffix(ord.Symbol, "USDT")
 	}
 
 	resp := &core.OrderResponseFull{
 		OrderResponse: core.OrderResponse{
 			OrderID:    strconv.FormatInt(ord.OrderID, 10),
 			Symbol:     ord.Symbol,
-			Side:       ord.Side,
+			Side:       side,
 			Tif:        core.TimeInForce(ord.TimeInForce),
 			Status:     parseOrderStatus(ord.Status),
-			Price:      decimal.RequireFromString(ord.Price),
+			Price:      price,
 			CreateTime: time.UnixMilli(ord.TransactTime),
 		},
-		AvgPrice:        totalProduct.Div(totalFill),
-		ExecutedQty:     totalFill,
-		Commission:      totalCommission,
-		CommissionAsset: trade[0].CommissionAsset,
+		AvgPrice:        avgPrice,
+		ExecutedQty:     execQty,
+		Commission:      execQty.Mul(decimal.NewFromFloat(commisionRate)),
+		CommissionAsset: commAsset,
 		UpdateTime:      time.Now(),
 	}
 	if ord.OrigQuoteQty != "" {

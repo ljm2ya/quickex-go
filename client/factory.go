@@ -195,11 +195,11 @@ func NewFuturesClient(exchange, apiKey, secret string, secondary ...string) core
 	//}
 	switch exchange {
 	case string(ExchangeBinanceFutures):
-		//privateKey, err := loadED25519PrivateKey(secret)
-		//if err != nil {
-		//panic(fmt.Errorf("failed to load Binance futures private key: %w", err))
-		//}
-		//return binanceFutures.NewClient(apiKey, privateKey)
+		privateKey, err := loadED25519PrivateKey(secret)
+		if err != nil {
+			panic(fmt.Errorf("failed to load Binance futures private key: %w", err))
+		}
+		return binanceFutures.NewClient(apiKey, privateKey)
 	case string(ExchangeBybitFutures):
 		return bybitFutures.NewClient(apiKey, secret)
 	case string(ExchangeKucoinFutures):

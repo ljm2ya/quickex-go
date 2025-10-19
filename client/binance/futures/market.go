@@ -240,7 +240,15 @@ func (b *BinanceClient) GetOrderbook(symbol string, depth int64) (*core.Orderboo
 
 func (b *BinanceClient) SubscribeQuotes(ctx context.Context, symbols []string, errHandler func(err error)) (map[string]chan core.Quote, error) {
 	quoteChMap := make(map[string]chan core.Quote)
-	ws, _, err := websocket.DefaultDialer.Dial("wss://fstream.binance.com", nil)
+
+	// Build the combined stream URL for Binance futures
+	streams := make([]string, len(symbols))
+	for i, sym := range symbols {
+		streams[i] = strings.ToLower(sym) + "@bookTicker"
+	}
+	streamURL := fmt.Sprintf("wss://fstream.binance.com/stream?streams=%s", strings.Join(streams, "/"))
+
+	ws, _, err := websocket.DefaultDialer.Dial(streamURL, nil)
 	if err != nil {
 		return quoteChMap, err
 	}
@@ -252,32 +260,6 @@ func (b *BinanceClient) SubscribeQuotes(ctx context.Context, symbols []string, e
 			time.Now().Add(10*time.Second),
 		)
 	})
-
-	params := make([]string, len(symbols))
-	for i, sym := range symbols {
-		params[i] = strings.ToLower(sym) + "@bookTicker"
-	}
-
-	req := wsSubscribeRequest{
-		Method: "SUBSCRIBE",
-		Params: params,
-		ID:     1,
-	}
-	err = ws.WriteJSON(req)
-	if err != nil {
-		return quoteChMap, err
-	}
-	var res struct {
-		Result interface{} `json:"result"`
-		Id     int64       `json:"id"`
-	}
-	_, msg, err := ws.ReadMessage()
-	if err != nil {
-		return quoteChMap, fmt.Errorf("[wsclient] WS read error: %v", err)
-	}
-	if err := json.Unmarshal(msg, &res); err != nil {
-		return quoteChMap, fmt.Errorf("[wsclient] Unmarshal error: %v %s", err, string(msg))
-	}
 	for _, symbol := range symbols {
 		quoteChMap[symbol] = make(chan core.Quote, 1)
 	}
@@ -300,23 +282,30 @@ func (b *BinanceClient) SubscribeQuotes(ctx context.Context, symbols []string, e
 			_, msg, err := ws.ReadMessage()
 			if err != nil && errHandler != nil {
 				errHandler(fmt.Errorf("WebSocket service error: %w", err))
+				continue
 			}
-			var res wsTickerStream
-			if err := res.UnmarshalJSON(msg); err != nil {
+
+			// Parse combined stream message format
+			var combinedMsg struct {
+				Stream string          `json:"stream"`
+				Data   wsTickerStream  `json:"data"`
+			}
+			if err := json.Unmarshal(msg, &combinedMsg); err != nil {
 				if errHandler != nil {
 					errHandler(fmt.Errorf("WebSocket unmarshal error: %w", err))
 				}
+				continue
 			}
 
-			if ch, exists := quoteChMap[res.Symbol]; exists {
+			if ch, exists := quoteChMap[combinedMsg.Data.Symbol]; exists {
 				select {
 				case ch <- core.Quote{
-					Symbol:   res.Symbol,
-					BidPrice: decimal.RequireFromString(res.BestBidPrice),
-					BidQty:   decimal.RequireFromString(res.BestBidQty),
-					AskPrice: decimal.RequireFromString(res.BestAskPrice),
-					AskQty:   decimal.RequireFromString(res.BestAskQty),
-					Time:     time.UnixMilli(res.EventTime),
+					Symbol:   combinedMsg.Data.Symbol,
+					BidPrice: decimal.RequireFromString(combinedMsg.Data.BestBidPrice),
+					BidQty:   decimal.RequireFromString(combinedMsg.Data.BestBidQty),
+					AskPrice: decimal.RequireFromString(combinedMsg.Data.BestAskPrice),
+					AskQty:   decimal.RequireFromString(combinedMsg.Data.BestAskQty),
+					Time:     time.UnixMilli(combinedMsg.Data.EventTime),
 				}:
 				default:
 					// Channel is full, skip this update

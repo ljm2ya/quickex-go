@@ -39,10 +39,6 @@ func (b *BinanceClient) makeRestRequest(method, endpoint string, params map[stri
 	sig := ed25519.Sign(b.privateKey, []byte(queryString))
 	signature := base64.StdEncoding.EncodeToString(sig)
 
-	// Debug output
-	fmt.Printf("DEBUG %s %s: Signing string: %s\n", method, endpoint, queryString)
-	fmt.Printf("DEBUG %s %s: Generated signature: %s\n", method, endpoint, signature)
-
 	values.Set("signature", signature)
 
 	// Create request
@@ -130,7 +126,6 @@ type PositionRiskInfo struct {
 	IsolatedWallet   string `json:"isolatedWallet"`
 	UpdateTime       int64  `json:"updateTime"`
 }
-
 
 // FundingRateInfo represents the response from the funding rate info API
 type FundingRateInfo struct {
