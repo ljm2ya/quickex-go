@@ -96,7 +96,7 @@ func (c *WsClient) Connect(ctx context.Context) (int64, error) {
 
 	go c.wsMainHandler()
 	go c.pingPongHandler()
-	go c.sessionLifetimeWatcher()
+	//go c.sessionLifetimeWatcher()
 
 	if c.afterConnect != nil {
 		if err := c.afterConnect(c); err != nil {
