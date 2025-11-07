@@ -168,6 +168,11 @@ func (b *BinanceClient) FetchPositionState(symbol string) (*core.PositionState, 
 				return nil, nil // No position found
 			}
 
+			// Parse decimal values
+			size, err := decimal.NewFromString(position.PositionAmt)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse position amount %s: %w", position.PositionAmt, err)
+			}
 			// Parse position side
 			var side core.PositionSide
 			switch position.PositionSide {
@@ -176,16 +181,15 @@ func (b *BinanceClient) FetchPositionState(symbol string) (*core.PositionState, 
 			case "SHORT":
 				side = core.SHORT
 			case "BOTH":
-				side = core.BOTH
+				if size.IsPositive() {
+					side = core.LONG
+				} else {
+					side = core.SHORT
+				}
 			default:
 				return nil, fmt.Errorf("invalid position side: %s", position.PositionSide)
 			}
 
-			// Parse decimal values
-			size, err := decimal.NewFromString(position.PositionAmt)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse position amount %s: %w", position.PositionAmt, err)
-			}
 			// Make size always positive
 			size = size.Abs()
 
