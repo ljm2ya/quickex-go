@@ -201,7 +201,7 @@ func NewFuturesClient(exchange, apiKey, secret string, secondary ...string) core
 		}
 		return binanceFutures.NewClient(apiKey, privateKey)
 	case string(ExchangeBybitFutures):
-		return bybitFutures.NewClient(apiKey, secret)
+		//return bybitFutures.NewClient(apiKey, secret)
 	case string(ExchangeKucoinFutures):
 		//return kucoinFutures.NewClient(apiKey, secret, sec) // KuCoin uses passphrase as third param
 	case string(ExchangeOKXFutures):

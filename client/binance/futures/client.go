@@ -33,6 +33,7 @@ type BinanceClient struct {
 	apiKey     string
 	privateKey ed25519.PrivateKey
 	baseURL    string
+	hedgeMode  bool
 }
 
 func NewClient(apiKey string, prvKey ed25519.PrivateKey) *BinanceClient {

@@ -2,7 +2,6 @@ package upbit
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/shopspring/decimal"
@@ -41,5 +40,5 @@ func (u *UpbitClient) FetchBalance(asset string, includeLocked bool, futuresPosi
 		}
 	}
 
-	return decimal.Zero, errors.New("asset not found")
+	return decimal.Zero, nil
 }

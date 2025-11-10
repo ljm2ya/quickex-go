@@ -221,3 +221,32 @@ func (b *BinanceClient) SetMarginMode(symbol string, mode core.MarginMode) error
 
 	return nil
 }
+
+func (b *BinanceClient) SetHedgeMode(hedgeMode bool) error {
+	/*
+		mode := "true"
+		if !hedgeMode {
+			mode = "false"
+		}
+		params := map[string]interface{}{
+			"dualSidePosition": mode,
+		}
+
+		body, err := b.makeRestRequest("POST", "/fapi/v1/positionSide/dual", params)
+		if err != nil {
+			return fmt.Errorf("failed to set hedge mode: %w", err)
+		}
+
+		var response SetMarginModeResponse
+		if err := json.Unmarshal(body, &response); err != nil {
+			return fmt.Errorf("failed to parse response: %w", err)
+		}
+
+		// Check if the operation was successful
+		if response.Code != 200 {
+			return fmt.Errorf("failed to set hedge mode: %s (code: %d)", response.Msg, response.Code)
+		}*/
+
+	b.hedgeMode = hedgeMode
+	return nil
+}

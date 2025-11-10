@@ -153,6 +153,9 @@ func (b *BinanceClient) placeOrder(symbol, side, orderType string, opt *OrderOpt
 	if opt.SelfTradePreventionMode != "" {
 		params["selfTradePreventionMode"] = opt.SelfTradePreventionMode
 	}
+	if side == "BUY" && b.hedgeMode {
+		params["reduceOnly"] = true
+	}
 	id := nextWSID()
 	req := map[string]interface{}{
 		"id":     id,

@@ -48,4 +48,5 @@ type FuturesClient interface {
 	GetFundingRate(symbol string) (*FundingRate, error)
 	SetMarginMode(symbol string, mode MarginMode) error
 	FetchPositionState(symbol string) (*PositionState, error)
+	SetHedgeMode(hedgeMode bool) error
 }
