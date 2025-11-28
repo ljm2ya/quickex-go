@@ -70,7 +70,16 @@ func parseOrderResponse(order UpbitOrder, tif string) *core.OrderResponse {
 }
 
 // FetchOrder implements core.PrivateClient interface
+// Uses REST API for fetching existing orders, websocket for real-time updates
 func (u *UpbitClient) FetchOrder(symbol, orderId string) (*core.OrderResponseFull, error) {
+	// FetchOrder should use REST API to get current order state
+	// WebSocket is used for real-time order updates, not fetching existing orders
+	return u.fetchOrderFromREST(symbol, orderId)
+}
+
+
+// fetchOrderFromREST fetches order using REST API (fallback method)
+func (u *UpbitClient) fetchOrderFromREST(symbol, orderId string) (*core.OrderResponseFull, error) {
 	params := make(map[string]string)
 	if len(orderId) <= 10 { // identifier
 		params["identifier"] = orderId

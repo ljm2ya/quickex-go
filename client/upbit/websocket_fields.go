@@ -66,6 +66,21 @@ type WsOrder struct {
 	StreamType      string  `json:"stream_type"`      // 스트림 타입 (예: "REALTIME")
 }
 
+type WsAssetItem struct {
+	Currency string  `json:"currency"` // 화폐 코드
+	Balance  float64 `json:"balance"`  // 주문가능 수량
+	Locked   float64 `json:"locked"`   // 주문 중 묶여있는 수량
+}
+
+type WsAsset struct {
+	Type           string        `json:"type"`            // 타입: "myAsset"
+	AssetUUID      string        `json:"asset_uuid"`      // 자산 고유 아이디
+	Assets         []WsAssetItem `json:"assets"`          // 자산 목록
+	AssetTimestamp int64         `json:"asset_timestamp"` // 자산 타임스탬프 (ms)
+	Timestamp      int64         `json:"timestamp"`       // 전체 타임스탬프 (ms)
+	StreamType     string        `json:"stream_type"`     // 스트림 타입 (예: "REALTIME")
+}
+
 type WsOrderbookUnit struct {
 	AskPrice float64 `json:"ap"` // 매도 호가
 	BidPrice float64 `json:"bp"` // 매수 호가

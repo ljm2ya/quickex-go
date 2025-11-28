@@ -1,6 +1,7 @@
 package futures
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -401,7 +402,29 @@ func extractErrFn() core.WsExtractErrFunc {
 				return okx.ParseOKXError(code, msg)
 			}
 		}
-		
+
 		return nil
 	}
+}
+
+// SubscribeOrderEvents implements core.PrivateClient interface
+// Note: OKX Futures real-time order events not implemented yet
+func (o *OKXFuturesClient) SubscribeOrderEvents(ctx context.Context, symbols []string, errHandler func(err error)) (<-chan core.OrderEvent, error) {
+	return nil, fmt.Errorf("real-time order events not implemented for OKX Futures")
+}
+
+// SubscribeBalanceEvents implements core.PrivateClient interface
+// Note: OKX Futures real-time balance events not implemented yet
+func (o *OKXFuturesClient) SubscribeBalanceEvents(ctx context.Context, assets []string, errHandler func(err error)) (<-chan core.BalanceEvent, error) {
+	return nil, fmt.Errorf("real-time balance events not implemented for OKX Futures")
+}
+
+// UnsubscribeOrderEvents implements core.PrivateClient interface
+func (o *OKXFuturesClient) UnsubscribeOrderEvents() error {
+	return fmt.Errorf("real-time order events not implemented for OKX Futures")
+}
+
+// UnsubscribeBalanceEvents implements core.PrivateClient interface
+func (o *OKXFuturesClient) UnsubscribeBalanceEvents() error {
+	return fmt.Errorf("real-time balance events not implemented for OKX Futures")
 }

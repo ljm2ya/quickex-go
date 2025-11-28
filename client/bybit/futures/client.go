@@ -1,6 +1,7 @@
 package bybit
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -260,4 +261,26 @@ func hmacSHA256(msg, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(msg))
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// SubscribeOrderEvents implements core.PrivateClient interface
+// Note: Bybit Futures real-time order events not implemented yet
+func (c *BybitFuturesClient) SubscribeOrderEvents(ctx context.Context, symbols []string, errHandler func(err error)) (<-chan core.OrderEvent, error) {
+	return nil, fmt.Errorf("real-time order events not implemented for Bybit Futures")
+}
+
+// SubscribeBalanceEvents implements core.PrivateClient interface
+// Note: Bybit Futures real-time balance events not implemented yet
+func (c *BybitFuturesClient) SubscribeBalanceEvents(ctx context.Context, assets []string, errHandler func(err error)) (<-chan core.BalanceEvent, error) {
+	return nil, fmt.Errorf("real-time balance events not implemented for Bybit Futures")
+}
+
+// UnsubscribeOrderEvents implements core.PrivateClient interface
+func (c *BybitFuturesClient) UnsubscribeOrderEvents() error {
+	return fmt.Errorf("real-time order events not implemented for Bybit Futures")
+}
+
+// UnsubscribeBalanceEvents implements core.PrivateClient interface
+func (c *BybitFuturesClient) UnsubscribeBalanceEvents() error {
+	return fmt.Errorf("real-time balance events not implemented for Bybit Futures")
 }

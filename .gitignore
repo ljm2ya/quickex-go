@@ -92,6 +92,7 @@ site/
 *.bak
 *.backup
 *~
+*.old
 
 # Runtime files
 *.pid

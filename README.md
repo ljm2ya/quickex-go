@@ -199,12 +199,55 @@ if err != nil {
 
 ## Testing
 
-The library includes comprehensive tests, but **test files are excluded from git** because they contain hardcoded API credentials.
+### Private WebSocket Testing
 
-To run tests locally:
-1. Create your own test files based on the patterns in the codebase
-2. Add your API credentials
-3. Run with: `go test ./...`
+The library includes real-time WebSocket subscription testing with actual trading. Tests are located in the `test/` directory and use `.env` configuration.
+
+#### Quick Start:
+```bash
+# Basic test execution
+cd test && go test -v
+```
+
+#### Configuration:
+```bash
+# 1. Create configuration from template
+cp test/.env.example test/.env
+
+# 2. Edit with your API credentials
+nano test/.env
+
+# 3. Configure test behavior:
+ENABLE_REAL_ORDERS=false    # Safe mode (default)
+ENABLE_UPBIT_TEST=true      # Test Upbit WebSocket
+ENABLE_BINANCE_FUTURES_TEST=true  # Test Binance Futures WebSocket
+```
+
+#### Test Behavior:
+- **Real orders OFF**: Test skips with message "Private WebSocket testing requires real orders to be meaningful"
+- **Real orders ON**: Test places actual orders (30,000 KRW / 10 USDT) and monitors WebSocket events
+
+#### Safety Features:
+- **Default**: Real orders disabled for safety
+- **Warnings**: Multiple warnings when real money enabled
+- **Small amounts**: Conservative test amounts to minimize risk
+- **Balance checks**: Verifies sufficient funds before placing orders
+
+#### Enable Real Order Testing:
+```bash
+# Edit configuration
+nano test/.env
+
+# Change this line:
+ENABLE_REAL_ORDERS=false
+# to:
+ENABLE_REAL_ORDERS=true
+
+# Run test with real trading
+cd test && go test -v
+```
+
+**⚠️ Warning**: Real order testing uses actual money and places real trades on exchanges. Only enable when you understand the risks and want to test actual WebSocket event capture.
 
 ## License
 

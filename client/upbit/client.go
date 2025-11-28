@@ -10,10 +10,12 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
+	"github.com/ljm2ya/quickex-go/core"
 )
 
 const (
@@ -21,29 +23,67 @@ const (
 )
 
 type UpbitClient struct {
-	apiKey    string
-	secretKey string
-	client    *http.Client
+	apiKey     string
+	secretKey  string
+	client     *http.Client
+	privateWS  *UpbitPrivateWS
+	wsConnected bool
+	wsMu       sync.Mutex
+
+	// Subscription state
+	orderEventCh    chan core.OrderEvent
+	balanceEventCh  chan core.BalanceEvent
+	subscriptionCtx context.Context
+	subscriptionCancel context.CancelFunc
 }
 
 func NewUpbitClient(accessKey, secretKey string) *UpbitClient {
-	return &UpbitClient{
-		apiKey:    accessKey,
-		secretKey: secretKey,
-		client:    &http.Client{Timeout: 30 * time.Second},
+	client := &UpbitClient{
+		apiKey:      accessKey,
+		secretKey:   secretKey,
+		client:      &http.Client{Timeout: 30 * time.Second},
+		wsConnected: false,
+		wsMu:        sync.Mutex{},
 	}
+	client.privateWS = NewUpbitPrivateWS(client)
+	return client
 }
 
 // Connect implements core.PrivateClient interface
 func (u *UpbitClient) Connect(ctx context.Context) (int64, error) {
-	// Upbit doesn't use persistent connections like WebSocket
-	// Return 0 delta timestamp since no time sync is needed
+	u.wsMu.Lock()
+	defer u.wsMu.Unlock()
+
+	if u.wsConnected {
+		return 0, nil
+	}
+
+	// Establish private websocket connection for real-time order and balance updates
+	if err := u.privateWS.Connect(ctx); err != nil {
+		// If websocket connection fails, log the error but don't fail the entire connection
+		// since REST API can be used as backup
+		fmt.Printf("Warning: Failed to connect to private websocket: %v\n", err)
+	} else {
+		u.wsConnected = true
+	}
+
+	// Return 0 delta timestamp since no time sync is needed for REST API
 	return 0, nil
 }
 
 // Close implements core.PrivateClient interface
 func (u *UpbitClient) Close() error {
-	// Upbit doesn't maintain persistent connections
+	u.wsMu.Lock()
+	defer u.wsMu.Unlock()
+
+	if u.wsConnected && u.privateWS != nil {
+		err := u.privateWS.Close()
+		if err != nil {
+			fmt.Printf("Warning: Failed to close private websocket: %v\n", err)
+		}
+		u.wsConnected = false
+	}
+
 	return nil
 }
 
@@ -150,4 +190,146 @@ func (u *UpbitClient) ToAsset(symbol string) string {
 	
 	// If no hyphen found, return the symbol as-is (shouldn't happen with valid symbols)
 	return symbol
+}
+
+// SubscribeOrderEvents implements core.PrivateClient interface
+func (u *UpbitClient) SubscribeOrderEvents(ctx context.Context, symbols []string, errHandler func(err error)) (<-chan core.OrderEvent, error) {
+	u.wsMu.Lock()
+	defer u.wsMu.Unlock()
+
+	// Ensure websocket is connected
+	if !u.wsConnected || u.privateWS == nil || !u.privateWS.IsConnected() {
+		return nil, fmt.Errorf("websocket not connected")
+	}
+
+	// Create event channel if not exists
+	if u.orderEventCh == nil {
+		u.orderEventCh = make(chan core.OrderEvent, 100)
+		u.subscriptionCtx, u.subscriptionCancel = context.WithCancel(ctx)
+
+		// Start forwarding events from websocket to user channel
+		go u.forwardOrderEvents(errHandler)
+	}
+
+	return u.orderEventCh, nil
+}
+
+// SubscribeBalanceEvents implements core.PrivateClient interface
+func (u *UpbitClient) SubscribeBalanceEvents(ctx context.Context, assets []string, errHandler func(err error)) (<-chan core.BalanceEvent, error) {
+	u.wsMu.Lock()
+	defer u.wsMu.Unlock()
+
+	// Ensure websocket is connected
+	if !u.wsConnected || u.privateWS == nil || !u.privateWS.IsConnected() {
+		return nil, fmt.Errorf("websocket not connected")
+	}
+
+	// Create event channel if not exists
+	if u.balanceEventCh == nil {
+		u.balanceEventCh = make(chan core.BalanceEvent, 100)
+		u.subscriptionCtx, u.subscriptionCancel = context.WithCancel(ctx)
+
+		// Start forwarding events from websocket to user channel
+		go u.forwardBalanceEvents(errHandler)
+	}
+
+	return u.balanceEventCh, nil
+}
+
+// UnsubscribeOrderEvents implements core.PrivateClient interface
+func (u *UpbitClient) UnsubscribeOrderEvents() error {
+	u.wsMu.Lock()
+	defer u.wsMu.Unlock()
+
+	if u.subscriptionCancel != nil {
+		u.subscriptionCancel()
+	}
+
+	if u.orderEventCh != nil {
+		close(u.orderEventCh)
+		u.orderEventCh = nil
+	}
+
+	return nil
+}
+
+// UnsubscribeBalanceEvents implements core.PrivateClient interface
+func (u *UpbitClient) UnsubscribeBalanceEvents() error {
+	u.wsMu.Lock()
+	defer u.wsMu.Unlock()
+
+	if u.subscriptionCancel != nil {
+		u.subscriptionCancel()
+	}
+
+	if u.balanceEventCh != nil {
+		close(u.balanceEventCh)
+		u.balanceEventCh = nil
+	}
+
+	return nil
+}
+
+// forwardOrderEvents forwards order events from websocket to user channel
+func (u *UpbitClient) forwardOrderEvents(errHandler func(err error)) {
+	wsOrderCh := u.privateWS.GetOrderEventChannel()
+
+	for {
+		select {
+		case orderEvent, ok := <-wsOrderCh:
+			if !ok {
+				if errHandler != nil {
+					errHandler(fmt.Errorf("order event websocket channel closed"))
+				}
+				return
+			}
+
+			// Forward to user channel
+			select {
+			case u.orderEventCh <- orderEvent:
+			case <-u.subscriptionCtx.Done():
+				return
+			default:
+				// User channel full, drop event
+				if errHandler != nil {
+					errHandler(fmt.Errorf("order event channel full, dropping event for order %s", orderEvent.OrderID))
+				}
+			}
+
+		case <-u.subscriptionCtx.Done():
+			return
+		}
+	}
+}
+
+// forwardBalanceEvents forwards balance events from websocket to user channel
+func (u *UpbitClient) forwardBalanceEvents(errHandler func(err error)) {
+	wsBalanceCh := u.privateWS.GetBalanceEventChannel()
+
+	for {
+		select {
+		case balanceEvent, ok := <-wsBalanceCh:
+			if !ok {
+				if errHandler != nil {
+					errHandler(fmt.Errorf("balance event websocket channel closed"))
+				}
+				return
+			}
+
+			// Forward to user channel
+			select {
+			case u.balanceEventCh <- balanceEvent:
+			case <-u.subscriptionCtx.Done():
+				return
+			default:
+				// User channel full, drop event
+				if errHandler != nil {
+					errHandler(fmt.Errorf("balance event channel full, dropping event for asset %s", balanceEvent.Asset))
+				}
+			}
+
+		case <-u.subscriptionCtx.Done():
+			return
+		}
+	}
 }

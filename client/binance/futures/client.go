@@ -1,6 +1,7 @@
 package binance
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -34,6 +35,17 @@ type BinanceClient struct {
 	privateKey ed25519.PrivateKey
 	baseURL    string
 	hedgeMode  bool
+	isTestnet  bool
+
+	// User data stream for private events
+	userDataStream *BinanceUserDataStream
+
+	// Real-time event subscription channels
+	orderEventCh    chan core.OrderEvent
+	balanceEventCh  chan core.BalanceEvent
+	subscriptionCtx context.Context
+	subscriptionCancel context.CancelFunc
+	subscriptionMu  sync.Mutex
 }
 
 func NewClient(apiKey string, prvKey ed25519.PrivateKey) *BinanceClient {
@@ -47,6 +59,7 @@ func NewClient(apiKey string, prvKey ed25519.PrivateKey) *BinanceClient {
 		apiKey:     apiKey,
 		privateKey: prvKey,
 		baseURL:    "https://fapi.binance.com",
+		isTestnet:  false,
 	}
 	b.WsClient = core.NewWsClient(
 		binanceWsURL,
@@ -58,6 +71,8 @@ func NewClient(apiKey string, prvKey ed25519.PrivateKey) *BinanceClient {
 		extractErrFn(),
 		afterConnect(b),
 	)
+	// Initialize user data stream
+	b.userDataStream = NewBinanceUserDataStream(b, apiKey, prvKey, false)
 	return b
 }
 
@@ -72,6 +87,7 @@ func NewTestClient(apiKey string, prvKey ed25519.PrivateKey) *BinanceClient {
 		apiKey:     apiKey,
 		privateKey: prvKey,
 		baseURL:    "https://testnet.binancefuture.com",
+		isTestnet:  true,
 	}
 	b.WsClient = core.NewWsClient(
 		binanceTestnetWsURL,
@@ -83,6 +99,8 @@ func NewTestClient(apiKey string, prvKey ed25519.PrivateKey) *BinanceClient {
 		extractErrFn(),
 		afterConnect(b),
 	)
+	// Initialize user data stream for testnet
+	b.userDataStream = NewBinanceUserDataStream(b, apiKey, prvKey, true)
 	return b
 }
 
@@ -105,11 +123,18 @@ func (b *BinanceClient) handleUserDataEvent(msg []byte) {
 			for _, bal := range acct.Balances {
 				free := core.ParseStringFloat(bal.Free)
 				locked := core.ParseStringFloat(bal.Locked)
+				total := free + locked
+
 				b.balancesMu.Lock()
+				if b.balances[bal.Asset] == nil {
+					b.balances[bal.Asset] = &core.Wallet{Asset: bal.Asset}
+				}
 				b.balances[bal.Asset].Free = decimal.NewFromFloat(free)
 				b.balances[bal.Asset].Locked = decimal.NewFromFloat(locked)
-				b.balances[bal.Asset].Total = decimal.NewFromFloat(free + locked)
+				b.balances[bal.Asset].Total = decimal.NewFromFloat(total)
 				b.balancesMu.Unlock()
+
+				// Balance events are now handled by the separate user data stream
 			}
 		} else {
 			fmt.Printf("json unmarshal error on handling user event: %v\n", err)
@@ -132,10 +157,13 @@ func (b *BinanceClient) handleUserDataEvent(msg []byte) {
 	case "executionReport":
 		var ord wsOrderTradeUpdate
 		if err := ord.UnmarshalJSON(root["event"]); err == nil {
+			// Update internal order tracking
 			resp := toOrderResponse(ord)
 			b.ordersMu.Lock()
 			b.orders[resp.OrderID] = resp
 			b.ordersMu.Unlock()
+
+			// Order events are now handled by the separate user data stream
 		} else {
 			fmt.Printf("json unmarshal error on handling user event: %v\n", err)
 			panic(err)
@@ -345,4 +373,190 @@ func (b *BinanceClient) ToAsset(symbol string) string {
 
 	// If no match found, return the symbol as-is (shouldn't happen with valid symbols)
 	return symbol
+}
+
+// SubscribeOrderEvents implements core.PrivateClient interface
+func (b *BinanceClient) SubscribeOrderEvents(ctx context.Context, symbols []string, errHandler func(err error)) (<-chan core.OrderEvent, error) {
+	b.subscriptionMu.Lock()
+	defer b.subscriptionMu.Unlock()
+
+	// Connect user data stream if not already connected
+	if !b.userDataStream.IsConnected() {
+		if err := b.userDataStream.Connect(ctx); err != nil {
+			return nil, fmt.Errorf("failed to connect user data stream: %v", err)
+		}
+	}
+
+	if b.orderEventCh == nil {
+		b.orderEventCh = make(chan core.OrderEvent, 100)
+		b.subscriptionCtx, b.subscriptionCancel = context.WithCancel(ctx)
+
+		// Start forwarding events from user data stream
+		go b.forwardOrderEvents(errHandler)
+	}
+
+	return b.orderEventCh, nil
+}
+
+// SubscribeBalanceEvents implements core.PrivateClient interface
+func (b *BinanceClient) SubscribeBalanceEvents(ctx context.Context, assets []string, errHandler func(err error)) (<-chan core.BalanceEvent, error) {
+	b.subscriptionMu.Lock()
+	defer b.subscriptionMu.Unlock()
+
+	// Connect user data stream if not already connected
+	if !b.userDataStream.IsConnected() {
+		if err := b.userDataStream.Connect(ctx); err != nil {
+			return nil, fmt.Errorf("failed to connect user data stream: %v", err)
+		}
+	}
+
+	if b.balanceEventCh == nil {
+		b.balanceEventCh = make(chan core.BalanceEvent, 100)
+		b.subscriptionCtx, b.subscriptionCancel = context.WithCancel(ctx)
+
+		// Start forwarding events from user data stream
+		go b.forwardBalanceEvents(errHandler)
+	}
+
+	return b.balanceEventCh, nil
+}
+
+// UnsubscribeOrderEvents implements core.PrivateClient interface
+func (b *BinanceClient) UnsubscribeOrderEvents() error {
+	b.subscriptionMu.Lock()
+	defer b.subscriptionMu.Unlock()
+
+	if b.subscriptionCancel != nil {
+		b.subscriptionCancel()
+	}
+
+	if b.orderEventCh != nil {
+		close(b.orderEventCh)
+		b.orderEventCh = nil
+	}
+
+	// Close user data stream if no more subscriptions
+	if b.balanceEventCh == nil {
+		b.userDataStream.Close()
+	}
+
+	return nil
+}
+
+// UnsubscribeBalanceEvents implements core.PrivateClient interface
+func (b *BinanceClient) UnsubscribeBalanceEvents() error {
+	b.subscriptionMu.Lock()
+	defer b.subscriptionMu.Unlock()
+
+	if b.subscriptionCancel != nil {
+		b.subscriptionCancel()
+	}
+
+	if b.balanceEventCh != nil {
+		close(b.balanceEventCh)
+		b.balanceEventCh = nil
+	}
+
+	// Close user data stream if no more subscriptions
+	if b.orderEventCh == nil {
+		b.userDataStream.Close()
+	}
+
+	return nil
+}
+
+// forwardOrderEvents forwards order events from user data stream to user channel
+func (b *BinanceClient) forwardOrderEvents(errHandler func(err error)) {
+	wsOrderCh := b.userDataStream.GetOrderEventChannel()
+
+	for {
+		select {
+		case orderEvent, ok := <-wsOrderCh:
+			if !ok {
+				return
+			}
+
+			// Forward to user channel
+			select {
+			case b.orderEventCh <- orderEvent:
+			case <-b.subscriptionCtx.Done():
+				return
+			default:
+				// User channel full, drop event
+				if errHandler != nil {
+					errHandler(fmt.Errorf("order event channel full, dropping event for order %s", orderEvent.OrderID))
+				}
+			}
+
+		case <-b.subscriptionCtx.Done():
+			return
+		}
+	}
+}
+
+// forwardBalanceEvents forwards balance events from user data stream to user channel
+func (b *BinanceClient) forwardBalanceEvents(errHandler func(err error)) {
+	wsBalanceCh := b.userDataStream.GetBalanceEventChannel()
+
+	for {
+		select {
+		case balanceEvent, ok := <-wsBalanceCh:
+			if !ok {
+				return
+			}
+
+			// Forward to user channel
+			select {
+			case b.balanceEventCh <- balanceEvent:
+			case <-b.subscriptionCtx.Done():
+				return
+			default:
+				// User channel full, drop event
+				if errHandler != nil {
+					errHandler(fmt.Errorf("balance event channel full, dropping event for asset %s", balanceEvent.Asset))
+				}
+			}
+
+		case <-b.subscriptionCtx.Done():
+			return
+		}
+	}
+}
+
+// convertToOrderEvent converts wsOrderTradeUpdate to core.OrderEvent
+func (b *BinanceClient) convertToOrderEvent(ord wsOrderTradeUpdate) core.OrderEvent {
+	var status core.OrderStatus
+	switch ord.Status {
+	case "NEW":
+		status = core.OrderStatusOpen
+	case "FILLED":
+		status = core.OrderStatusFilled
+	case "CANCELED":
+		status = core.OrderStatusCanceled
+	case "REJECTED", "EXPIRED":
+		status = core.OrderStatusError
+	case "PARTIALLY_FILLED":
+		status = core.OrderStatusOpen // Treat as open since it's still active
+	default:
+		status = core.OrderStatusOpen
+	}
+
+	price, _ := decimal.NewFromString(ord.Price)
+	quantity, _ := decimal.NewFromString(ord.OrigQty)
+	executedQty, _ := decimal.NewFromString(ord.ExecutedQty)
+	lastFilledPrice, _ := decimal.NewFromString(ord.LastFilledPrice)
+
+	return core.OrderEvent{
+		OrderID:     strconv.FormatInt(ord.OrderID, 10),
+		Symbol:      ord.Symbol,
+		Side:        ord.Side,
+		OrderType:   ord.OrderType,
+		Status:      status,
+		Price:       price,
+		Quantity:    quantity,
+		ExecutedQty: executedQty,
+		AvgPrice:    lastFilledPrice, // Approximate - Binance doesn't provide true average
+		UpdateTime:  time.Unix(0, ord.LastFilledTime*int64(time.Millisecond)),
+		TradeID:     strconv.FormatInt(ord.TradeID, 10),
+	}
 }

@@ -12,8 +12,8 @@ QuickEx Go is a unified cryptocurrency trading library providing consistent inte
 # Build the project
 go build ./...
 
-# Run tests (requires test_config.toml with API credentials)
-go test ./client -v
+# Run tests (requires .env with API credentials)
+go test ./test -v
 
 # Run specific test
 go test -run TestSubscribeQuotes ./client -v
@@ -91,7 +91,7 @@ client/
 - **Binance**: Supports both production and testnet endpoints
 
 ### Testing Infrastructure
-- Tests use `test_config.toml` (gitignored) for credentials
+- Tests use `.env` (gitignored) for credentials in test/ directory
 - Test factory loads clients dynamically based on config
 - Performance tracking built into test framework
 - Concurrent testing of multiple exchanges supported
@@ -111,7 +111,7 @@ client/
 2. Implement core interfaces from `core/interface.go`
 3. Add exchange constants to `client/factory.go`
 4. Update factory methods to instantiate new client
-5. Add test configuration to `test_config.toml.example`
+5. Add test configuration to `.env.example` in test/ directory
 
 ### Debugging WebSocket Issues
 1. Check channel buffer size (default 100)
@@ -121,15 +121,15 @@ client/
 
 ### Running Integration Tests
 ```bash
-# Create test_config.toml from example
-cp client/test_config.toml.example client/test_config.toml
+# Create .env from example
+cp test/.env.example test/.env
 # Edit with your API credentials
 # Run tests
-cd client && go test -v
+cd test && go test -v
 ```
 
 ### Testing Guidelines
-- **NEVER create mock tests** - All tests should use real API credentials from test_config.toml
+- **NEVER create mock tests** - All tests should use real API credentials from test/.env
 - The project has all necessary credentials configured for testing
 - Focus on integration tests that verify actual exchange behavior
 - Mock tests hide real API behaviors and should be avoided

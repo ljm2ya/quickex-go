@@ -31,6 +31,33 @@ const (
 	TimeInForceFOK TimeInForce = "FOK" // Fill or kill
 )
 
+// OrderEvent represents real-time order updates via websocket
+type OrderEvent struct {
+	OrderID         string          `json:"order_id"`
+	Symbol          string          `json:"symbol"`
+	Side            string          `json:"side"`
+	OrderType       string          `json:"order_type"`
+	Status          OrderStatus     `json:"status"`
+	Price           decimal.Decimal `json:"price"`
+	Quantity        decimal.Decimal `json:"quantity"`
+	ExecutedQty     decimal.Decimal `json:"executed_qty"`
+	AvgPrice        decimal.Decimal `json:"avg_price"`
+	Commission      decimal.Decimal `json:"commission"`
+	CommissionAsset string          `json:"commission_asset"`
+	UpdateTime      time.Time       `json:"update_time"`
+	TradeID         string          `json:"trade_id,omitempty"`
+	IsMaker         bool            `json:"is_maker,omitempty"`
+}
+
+// BalanceEvent represents real-time balance updates via websocket
+type BalanceEvent struct {
+	Asset           string          `json:"asset"`
+	Free            decimal.Decimal `json:"free"`
+	Locked          decimal.Decimal `json:"locked"`
+	Total           decimal.Decimal `json:"total"`
+	UpdateTime      time.Time       `json:"update_time"`
+}
+
 type OrderResponse struct {
 	OrderID         string
 	Symbol          string

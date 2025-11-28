@@ -1,6 +1,7 @@
 package binance
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -29,7 +30,13 @@ type BinanceClient struct {
 	balancesMu sync.RWMutex
 	ordersMu   sync.RWMutex
 	wsRejectMu sync.Mutex
-	// ... other Binance-specific fields ...
+
+	// Real-time event subscription channels
+	orderEventCh    chan core.OrderEvent
+	balanceEventCh  chan core.BalanceEvent
+	subscriptionCtx context.Context
+	subscriptionCancel context.CancelFunc
+	subscriptionMu  sync.Mutex
 }
 
 func NewClient(apiKey string, prvKey ed25519.PrivateKey) *BinanceClient {
@@ -94,41 +101,44 @@ func (b *BinanceClient) handleUserDataEvent(msg []byte) {
 			for _, bal := range acct.Balances {
 				free := decimal.RequireFromString(bal.Free)
 				locked := decimal.RequireFromString(bal.Locked)
+				total := free.Add(locked)
+
 				b.balancesMu.Lock()
+				if b.balances[bal.Asset] == nil {
+					b.balances[bal.Asset] = &core.Wallet{Asset: bal.Asset}
+				}
 				b.balances[bal.Asset].Free = free
 				b.balances[bal.Asset].Locked = locked
-				b.balances[bal.Asset].Total = free.Add(locked)
+				b.balances[bal.Asset].Total = total
 				b.balancesMu.Unlock()
+
+				// Forward balance event to subscription channel
+				b.forwardBalanceEvent(core.BalanceEvent{
+					Asset:  bal.Asset,
+					Free:   free,
+					Locked: locked,
+					Total:  total,
+				})
 			}
 		} else {
 			fmt.Printf("json unmarshal error on handling user event: %v\n", err)
 			panic(err)
 		}
-	case "balanceUpdate":
-		/*
-			b.logger.Infof("bal")
-			var bal wsBalanceUpdate
-			if err := json.Unmarshal(event, &bal); err == nil {
-				delta, _ := strconv.ParseFloat(bal.BalanceDelta, 64)
-				b.balancesMu.Lock()
-				b.balances[bal.Asset].Free += delta
-				b.balances[bal.Asset].Total += delta
-				b.balancesMu.Unlock()
-			} else {
-				b.logger.Panicf("json unmarshal error on handling user event: %v", err)
-			}*/
 	case "executionReport":
-		/*
-			var ord wsOrderTradeUpdate
-			if err := ord.UnmarshalJSON(root["event"]); err == nil {
-				resp := toOrderResponse(ord)
-				b.ordersMu.Lock()
-				b.orders[resp.OrderID] = resp
-				b.ordersMu.Unlock()
-			} else {
-				fmt.Printf("json unmarshal error on handling user event: %v\n", err)
-				panic(err)
-			}*/
+		var ord wsOrderTradeUpdate
+		if err := ord.UnmarshalJSON(root["event"]); err == nil {
+			// Update internal order tracking
+			resp := b.convertOrderTradeUpdate(ord)
+			b.ordersMu.Lock()
+			b.orders[resp.OrderID] = &resp
+			b.ordersMu.Unlock()
+
+			// Forward order event to subscription channel
+			b.forwardOrderEvent(b.convertToOrderEvent(ord))
+		} else {
+			fmt.Printf("json unmarshal error on handling user event: %v\n", err)
+			panic(err)
+		}
 	case "listStatusOrder":
 		var lso wsListStatus
 		if err := lso.UnmarshalJSON(root["event"]); err == nil {
@@ -329,13 +339,177 @@ func (b *BinanceClient) ToAsset(symbol string) string {
 	// Binance uses simple concatenation: BTCUSDT
 	// Common quote currencies to check (ordered by likelihood)
 	quotes := []string{"USDT", "BUSD", "USDC", "BTC", "ETH", "BNB", "EUR", "GBP", "AUD", "TRY"}
-	
+
 	for _, quote := range quotes {
 		if len(symbol) > len(quote) && symbol[len(symbol)-len(quote):] == quote {
 			return symbol[:len(symbol)-len(quote)]
 		}
 	}
-	
+
 	// If no match found, return the symbol as-is (shouldn't happen with valid symbols)
 	return symbol
+}
+
+// SubscribeOrderEvents implements core.PrivateClient interface
+func (b *BinanceClient) SubscribeOrderEvents(ctx context.Context, symbols []string, errHandler func(err error)) (<-chan core.OrderEvent, error) {
+	b.subscriptionMu.Lock()
+	defer b.subscriptionMu.Unlock()
+
+	if b.orderEventCh == nil {
+		b.orderEventCh = make(chan core.OrderEvent, 100)
+		b.subscriptionCtx, b.subscriptionCancel = context.WithCancel(ctx)
+	}
+
+	return b.orderEventCh, nil
+}
+
+// SubscribeBalanceEvents implements core.PrivateClient interface
+func (b *BinanceClient) SubscribeBalanceEvents(ctx context.Context, assets []string, errHandler func(err error)) (<-chan core.BalanceEvent, error) {
+	b.subscriptionMu.Lock()
+	defer b.subscriptionMu.Unlock()
+
+	if b.balanceEventCh == nil {
+		b.balanceEventCh = make(chan core.BalanceEvent, 100)
+		b.subscriptionCtx, b.subscriptionCancel = context.WithCancel(ctx)
+	}
+
+	return b.balanceEventCh, nil
+}
+
+// UnsubscribeOrderEvents implements core.PrivateClient interface
+func (b *BinanceClient) UnsubscribeOrderEvents() error {
+	b.subscriptionMu.Lock()
+	defer b.subscriptionMu.Unlock()
+
+	if b.subscriptionCancel != nil {
+		b.subscriptionCancel()
+	}
+
+	if b.orderEventCh != nil {
+		close(b.orderEventCh)
+		b.orderEventCh = nil
+	}
+
+	return nil
+}
+
+// UnsubscribeBalanceEvents implements core.PrivateClient interface
+func (b *BinanceClient) UnsubscribeBalanceEvents() error {
+	b.subscriptionMu.Lock()
+	defer b.subscriptionMu.Unlock()
+
+	if b.subscriptionCancel != nil {
+		b.subscriptionCancel()
+	}
+
+	if b.balanceEventCh != nil {
+		close(b.balanceEventCh)
+		b.balanceEventCh = nil
+	}
+
+	return nil
+}
+
+// forwardOrderEvent safely forwards an order event to the subscription channel
+func (b *BinanceClient) forwardOrderEvent(event core.OrderEvent) {
+	b.subscriptionMu.Lock()
+	ch := b.orderEventCh
+	ctx := b.subscriptionCtx
+	b.subscriptionMu.Unlock()
+
+	if ch != nil && ctx != nil {
+		select {
+		case ch <- event:
+		case <-ctx.Done():
+		default:
+			// Channel full, drop event
+		}
+	}
+}
+
+// forwardBalanceEvent safely forwards a balance event to the subscription channel
+func (b *BinanceClient) forwardBalanceEvent(event core.BalanceEvent) {
+	b.subscriptionMu.Lock()
+	ch := b.balanceEventCh
+	ctx := b.subscriptionCtx
+	b.subscriptionMu.Unlock()
+
+	if ch != nil && ctx != nil {
+		select {
+		case ch <- event:
+		case <-ctx.Done():
+		default:
+			// Channel full, drop event
+		}
+	}
+}
+
+// convertToOrderEvent converts wsOrderTradeUpdate to core.OrderEvent
+func (b *BinanceClient) convertToOrderEvent(ord wsOrderTradeUpdate) core.OrderEvent {
+	var status core.OrderStatus
+	switch ord.Status {
+	case "NEW":
+		status = core.OrderStatusOpen
+	case "FILLED":
+		status = core.OrderStatusFilled
+	case "CANCELED":
+		status = core.OrderStatusCanceled
+	case "REJECTED", "EXPIRED":
+		status = core.OrderStatusError
+	case "PARTIALLY_FILLED":
+		status = core.OrderStatusOpen // Treat as open since it's still active
+	default:
+		status = core.OrderStatusOpen
+	}
+
+	price, _ := decimal.NewFromString(ord.Price)
+	quantity, _ := decimal.NewFromString(ord.OrigQty)
+	executedQty, _ := decimal.NewFromString(ord.ExecutedQty)
+	lastFilledPrice, _ := decimal.NewFromString(ord.LastFilledPrice)
+
+	return core.OrderEvent{
+		OrderID:     strconv.FormatInt(ord.OrderID, 10),
+		Symbol:      ord.Symbol,
+		Side:        ord.Side,
+		OrderType:   ord.OrderType,
+		Status:      status,
+		Price:       price,
+		Quantity:    quantity,
+		ExecutedQty: executedQty,
+		AvgPrice:    lastFilledPrice, // Approximate - Binance doesn't provide true average
+		UpdateTime:  time.Unix(0, ord.LastFilledTime*int64(time.Millisecond)),
+		TradeID:     strconv.FormatInt(ord.TradeID, 10),
+	}
+}
+
+// convertOrderTradeUpdate converts wsOrderTradeUpdate to core.OrderResponse for internal storage
+func (b *BinanceClient) convertOrderTradeUpdate(ord wsOrderTradeUpdate) core.OrderResponse {
+	var status core.OrderStatus
+	switch ord.Status {
+	case "NEW":
+		status = core.OrderStatusOpen
+	case "FILLED":
+		status = core.OrderStatusFilled
+	case "CANCELED":
+		status = core.OrderStatusCanceled
+	case "REJECTED", "EXPIRED":
+		status = core.OrderStatusError
+	case "PARTIALLY_FILLED":
+		status = core.OrderStatusOpen // Treat as open since it's still active
+	default:
+		status = core.OrderStatusOpen
+	}
+
+	price, _ := decimal.NewFromString(ord.Price)
+	quantity, _ := decimal.NewFromString(ord.OrigQty)
+
+	return core.OrderResponse{
+		OrderID:    strconv.FormatInt(ord.OrderID, 10),
+		Symbol:     ord.Symbol,
+		Side:       ord.Side,
+		Status:     status,
+		Price:      price,
+		Quantity:   quantity,
+		CreateTime: time.Unix(0, ord.EventTime*int64(time.Millisecond)),
+	}
 }

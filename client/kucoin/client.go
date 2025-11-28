@@ -8,6 +8,7 @@ import (
 
 	"github.com/Kucoin/kucoin-universal-sdk/sdk/golang/pkg/api"
 	"github.com/Kucoin/kucoin-universal-sdk/sdk/golang/pkg/types"
+	"github.com/ljm2ya/quickex-go/core"
 )
 
 type KucoinSpotClient struct {
@@ -119,7 +120,29 @@ func (c *KucoinSpotClient) ToAsset(symbol string) string {
 	if len(parts) >= 2 {
 		return parts[0]
 	}
-	
+
 	// If no hyphen found, return the symbol as-is (shouldn't happen with valid symbols)
 	return symbol
+}
+
+// SubscribeOrderEvents implements core.PrivateClient interface
+// Note: KuCoin real-time order events not implemented yet
+func (c *KucoinSpotClient) SubscribeOrderEvents(ctx context.Context, symbols []string, errHandler func(err error)) (<-chan core.OrderEvent, error) {
+	return nil, fmt.Errorf("real-time order events not implemented for KuCoin")
+}
+
+// SubscribeBalanceEvents implements core.PrivateClient interface
+// Note: KuCoin real-time balance events not implemented yet
+func (c *KucoinSpotClient) SubscribeBalanceEvents(ctx context.Context, assets []string, errHandler func(err error)) (<-chan core.BalanceEvent, error) {
+	return nil, fmt.Errorf("real-time balance events not implemented for KuCoin")
+}
+
+// UnsubscribeOrderEvents implements core.PrivateClient interface
+func (c *KucoinSpotClient) UnsubscribeOrderEvents() error {
+	return fmt.Errorf("real-time order events not implemented for KuCoin")
+}
+
+// UnsubscribeBalanceEvents implements core.PrivateClient interface
+func (c *KucoinSpotClient) UnsubscribeBalanceEvents() error {
+	return fmt.Errorf("real-time balance events not implemented for KuCoin")
 }

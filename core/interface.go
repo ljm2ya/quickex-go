@@ -31,6 +31,12 @@ type PrivateClient interface {
 	//TakeProfitSell(symbol string, quantity, triggerPrice decimal.Decimal) (*OrderResponse, error)
 	CancelOrder(symbol, orderId string) (*OrderResponse, error)
 	CancelAll(symbol string) error
+
+	// Real-time subscription methods for private data
+	SubscribeOrderEvents(ctx context.Context, symbols []string, errHandler func(err error)) (<-chan OrderEvent, error)
+	SubscribeBalanceEvents(ctx context.Context, assets []string, errHandler func(err error)) (<-chan BalanceEvent, error)
+	UnsubscribeOrderEvents() error
+	UnsubscribeBalanceEvents() error
 }
 
 type TransactionClient interface {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Kucoin/kucoin-universal-sdk/sdk/golang/pkg/api"
 	"github.com/Kucoin/kucoin-universal-sdk/sdk/golang/pkg/types"
+	"github.com/ljm2ya/quickex-go/core"
 	"github.com/shopspring/decimal"
 )
 
@@ -128,16 +129,38 @@ func (c *KucoinFuturesClient) ToAsset(symbol string) string {
 	if len(symbol) > 1 && symbol[len(symbol)-1:] == "M" {
 		symbol = symbol[:len(symbol)-1]
 	}
-	
+
 	// Common quote currencies to check (ordered by likelihood)
 	quotes := []string{"USDT", "USD", "BTC", "ETH"}
-	
+
 	for _, quote := range quotes {
 		if len(symbol) > len(quote) && symbol[len(symbol)-len(quote):] == quote {
 			return symbol[:len(symbol)-len(quote)]
 		}
 	}
-	
+
 	// If no match found, return the symbol as-is (shouldn't happen with valid symbols)
 	return symbol
+}
+
+// SubscribeOrderEvents implements core.PrivateClient interface
+// Note: KuCoin Futures real-time order events not implemented yet
+func (c *KucoinFuturesClient) SubscribeOrderEvents(ctx context.Context, symbols []string, errHandler func(err error)) (<-chan core.OrderEvent, error) {
+	return nil, fmt.Errorf("real-time order events not implemented for KuCoin Futures")
+}
+
+// SubscribeBalanceEvents implements core.PrivateClient interface
+// Note: KuCoin Futures real-time balance events not implemented yet
+func (c *KucoinFuturesClient) SubscribeBalanceEvents(ctx context.Context, assets []string, errHandler func(err error)) (<-chan core.BalanceEvent, error) {
+	return nil, fmt.Errorf("real-time balance events not implemented for KuCoin Futures")
+}
+
+// UnsubscribeOrderEvents implements core.PrivateClient interface
+func (c *KucoinFuturesClient) UnsubscribeOrderEvents() error {
+	return fmt.Errorf("real-time order events not implemented for KuCoin Futures")
+}
+
+// UnsubscribeBalanceEvents implements core.PrivateClient interface
+func (c *KucoinFuturesClient) UnsubscribeBalanceEvents() error {
+	return fmt.Errorf("real-time balance events not implemented for KuCoin Futures")
 }

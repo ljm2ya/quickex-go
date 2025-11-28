@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -29,6 +30,7 @@ type wsConnWrapper struct {
 
 type WsClient struct {
 	url       string
+	headers   http.Header // custom headers for websocket connection
 	wsConn    *wsConnWrapper
 	wsMu      sync.Mutex
 	connected bool
@@ -57,6 +59,27 @@ func NewWsClient(url string, lifeTime time.Duration, authFn WsAuthFunc,
 ) *WsClient {
 	return &WsClient{
 		url:             url,
+		headers:         make(http.Header),
+		lifeTime:        lifeTime,
+		authFn:          authFn,
+		userDataHandler: userdataHandler,
+		getRequestID:    getRequestID,
+		extractID:       extractID,
+		extractErr:      extractErr,
+		afterConnect:    afterConnect,
+	}
+}
+
+func NewWsClientWithHeaders(url string, lifeTime time.Duration, headers http.Header, authFn WsAuthFunc,
+	userdataHandler WsUserEventHandler,
+	getRequestID WsRequestIDFunc,
+	extractID WsExtractIDFunc,
+	extractErr WsExtractErrFunc,
+	afterConnect WsAfterConnectFunc,
+) *WsClient {
+	return &WsClient{
+		url:             url,
+		headers:         headers,
 		lifeTime:        lifeTime,
 		authFn:          authFn,
 		userDataHandler: userdataHandler,
@@ -71,7 +94,7 @@ func (c *WsClient) Connect(ctx context.Context) (int64, error) {
 	c.connected = true
 	c.Ctx, c.cancel = context.WithCancel(ctx)
 
-	ws, _, err := websocket.DefaultDialer.Dial(c.url, nil)
+	ws, _, err := websocket.DefaultDialer.Dial(c.url, c.headers)
 	if err != nil {
 		return 0, err
 	}
@@ -161,6 +184,18 @@ func (c *WsClient) SendRequest(req map[string]interface{}) (map[string]json.RawM
 	case <-time.After(5 * time.Second):
 		return nil, fmt.Errorf("timeout waiting for WS response")
 	}
+}
+
+// SendMessage sends a message without expecting a response (for subscriptions)
+func (c *WsClient) SendMessage(msg interface{}) error {
+	if !c.connected {
+		return fmt.Errorf("WebSocket is not connected.")
+	}
+
+	c.wsMu.Lock()
+	defer c.wsMu.Unlock()
+
+	return c.wsConn.WriteJSON(msg)
 }
 
 func (c *WsClient) wsMainHandler() {
