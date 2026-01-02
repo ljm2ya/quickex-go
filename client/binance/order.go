@@ -210,10 +210,18 @@ func (b *BinanceClient) placeOrder(symbol, side, orderType string, opt *OrderOpt
 		qty = decimal.RequireFromString(ord.OrigQuoteOrderQty)
 		isQuoteQty = true
 	}
+	// Convert string side to core.OrderSide
+	var orderSide core.OrderSide
+	if ord.Side == "BUY" {
+		orderSide = core.OrderSideBuy
+	} else if ord.Side == "SELL" {
+		orderSide = core.OrderSideSell
+	}
+
 	resp := &core.OrderResponse{
 		OrderID:         strconv.FormatInt(ord.OrderID, 10),
 		Symbol:          ord.Symbol,
-		Side:            ord.Side,
+		Side:            orderSide,
 		Tif:             core.TimeInForce(ord.TimeInForce),
 		Status:          parseOrderStatus(ord.Status),
 		Price:           decimal.RequireFromString(ord.Price),
@@ -285,10 +293,18 @@ func (b *BinanceClient) CancelOrder(symbol, orderId string) (*core.OrderResponse
 		qty = decimal.RequireFromString(ord.OrigQuoteOrderQty)
 		isQuoteQty = true
 	}
+	// Convert string side to core.OrderSide
+	var orderSide core.OrderSide
+	if ord.Side == "BUY" {
+		orderSide = core.OrderSideBuy
+	} else if ord.Side == "SELL" {
+		orderSide = core.OrderSideSell
+	}
+
 	resp := &core.OrderResponse{
 		OrderID:         strconv.FormatInt(ord.OrderID, 10),
 		Symbol:          ord.Symbol,
-		Side:            ord.Side,
+		Side:            orderSide,
 		Tif:             core.TimeInForce(ord.TimeInForce),
 		Status:          parseOrderStatus(ord.Status),
 		Price:           decimal.RequireFromString(ord.Price),
@@ -334,11 +350,19 @@ func (b *BinanceClient) FetchOrder(symbol, orderId string) (*core.OrderResponseF
 		commissionAsset = ""
 	}
 
+	// Convert string side to core.OrderSide
+	var orderSide core.OrderSide
+	if ord.Side == "BUY" {
+		orderSide = core.OrderSideBuy
+	} else if ord.Side == "SELL" {
+		orderSide = core.OrderSideSell
+	}
+
 	resp := &core.OrderResponseFull{
 		OrderResponse: core.OrderResponse{
 			OrderID:         strconv.FormatInt(ord.OrderID, 10),
 			Symbol:          ord.Symbol,
-			Side:            ord.Side,
+			Side:            orderSide,
 			Tif:             core.TimeInForce(ord.TimeInForce),
 			Status:          parseOrderStatus(ord.Status),
 			Price:           decimal.RequireFromString(ord.Price),

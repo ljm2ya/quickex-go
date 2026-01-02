@@ -467,10 +467,18 @@ func (b *BinanceClient) convertToOrderEvent(ord wsOrderTradeUpdate) core.OrderEv
 	executedQty, _ := decimal.NewFromString(ord.ExecutedQty)
 	lastFilledPrice, _ := decimal.NewFromString(ord.LastFilledPrice)
 
+	// Convert string side to core.OrderSide
+	var side core.OrderSide
+	if ord.Side == "BUY" {
+		side = core.OrderSideBuy
+	} else if ord.Side == "SELL" {
+		side = core.OrderSideSell
+	}
+
 	return core.OrderEvent{
 		OrderID:     strconv.FormatInt(ord.OrderID, 10),
 		Symbol:      ord.Symbol,
-		Side:        ord.Side,
+		Side:        side,
 		OrderType:   ord.OrderType,
 		Status:      status,
 		Price:       price,
@@ -503,10 +511,18 @@ func (b *BinanceClient) convertOrderTradeUpdate(ord wsOrderTradeUpdate) core.Ord
 	price, _ := decimal.NewFromString(ord.Price)
 	quantity, _ := decimal.NewFromString(ord.OrigQty)
 
+	// Convert string side to core.OrderSide
+	var side core.OrderSide
+	if ord.Side == "BUY" {
+		side = core.OrderSideBuy
+	} else if ord.Side == "SELL" {
+		side = core.OrderSideSell
+	}
+
 	return core.OrderResponse{
 		OrderID:    strconv.FormatInt(ord.OrderID, 10),
 		Symbol:     ord.Symbol,
-		Side:       ord.Side,
+		Side:       side,
 		Status:     status,
 		Price:      price,
 		Quantity:   quantity,

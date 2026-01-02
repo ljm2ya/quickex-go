@@ -110,7 +110,12 @@ func (c *BybitClient) wsPlaceOrder(opt OrderOptions) (*core.OrderResponse, error
 		res.IsQuoteQuantity = false
 	}
 	res.Price = opt.Price
-	res.Side = opt.Side
+	// Convert string side to core.OrderSide
+	if strings.ToUpper(opt.Side) == "BUY" {
+		res.Side = core.OrderSideBuy
+	} else if strings.ToUpper(opt.Side) == "SELL" {
+		res.Side = core.OrderSideSell
+	}
 	res.Status = core.OrderStatusOpen
 	return res, nil
 }
@@ -278,11 +283,11 @@ func (c *BybitClient) FetchOrder(symbol, orderId string) (*core.OrderResponseFul
 		ms, _ := strconv.ParseInt(s, 10, 64)
 		return time.UnixMilli(ms)
 	}
-	toSide := func(s bybit.Side) string {
+	toSide := func(s bybit.Side) core.OrderSide {
 		if s == bybit.SideBuy {
-			return "BUY"
+			return core.OrderSideBuy
 		} else if s == bybit.SideSell {
-			return "SELL"
+			return core.OrderSideSell
 		} else {
 			return ""
 		}

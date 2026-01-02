@@ -97,11 +97,19 @@ func (c *KucoinSpotClient) FetchOrder(symbol, orderId string) (*core.OrderRespon
 	createTime := time.Unix(resp.CreatedAt/1000, 0)
 	updateTime := createTime // KuCoin doesn't provide separate update time in this response
 
+	// Convert string side to core.OrderSide
+	var side core.OrderSide
+	if strings.ToUpper(resp.Side) == "BUY" {
+		side = core.OrderSideBuy
+	} else if strings.ToUpper(resp.Side) == "SELL" {
+		side = core.OrderSideSell
+	}
+
 	return &core.OrderResponseFull{
 		OrderResponse: core.OrderResponse{
 			OrderID:    resp.Id,
 			Symbol:     resp.Symbol,
-			Side:       strings.ToUpper(resp.Side),
+			Side:       side,
 			Status:     mapOrderStatus(resp),
 			Price:      price,
 			Quantity:   quantity,
@@ -153,10 +161,18 @@ func (c *KucoinSpotClient) placeLimitOrder(symbol, side string, quantity, price 
 		return nil, fmt.Errorf("order placement failed: %s", resp.Error)
 	}
 
+	// Convert string side to core.OrderSide
+	var orderSide core.OrderSide
+	if strings.ToUpper(side) == "BUY" {
+		orderSide = core.OrderSideBuy
+	} else if strings.ToUpper(side) == "SELL" {
+		orderSide = core.OrderSideSell
+	}
+
 	return &core.OrderResponse{
 		OrderID:    resp.OrderID,
 		Symbol:     symbol,
-		Side:       strings.ToUpper(side),
+		Side:       orderSide,
 		Status:     core.OrderStatusOpen,
 		Price:      price,
 		Quantity:   quantity,

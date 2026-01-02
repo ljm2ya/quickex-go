@@ -18,7 +18,7 @@ const (
 	userDataStreamURL     = "wss://fstream.binance.com"
 	userDataStreamTestURL = "wss://testnet.binancefuture.com"
 	listenKeyLifetime     = 24*time.Hour - 5*time.Minute // 24h minus 5min buffer
-	keepaliveInterval     = 30 * time.Minute             // Extend listenKey every 30 minutes
+	keepaliveInterval     = 25 * time.Minute             // Extend listenKey every 25 minutes (original timeout is 60mins)
 )
 
 // BinanceUserDataStream manages private websocket connections for user data events
@@ -332,25 +332,25 @@ func (uds *BinanceUserDataStream) handleUserDataEvent(msg []byte) {
 // handleAccountUpdate processes ACCOUNT_UPDATE events (balance and position updates)
 func (uds *BinanceUserDataStream) handleAccountUpdate(msg []byte) {
 	var accountUpdate struct {
-		EventType      string `json:"e"`
-		EventTime      int64  `json:"E"`
-		TransactionTime int64 `json:"T"`
-		Account        struct {
+		EventType       string `json:"e"`
+		EventTime       int64  `json:"E"`
+		TransactionTime int64  `json:"T"`
+		Account         struct {
 			EventReasonType string `json:"m"`
 			Balances        []struct {
-				Asset            string `json:"a"`
-				WalletBalance    string `json:"wb"`
+				Asset              string `json:"a"`
+				WalletBalance      string `json:"wb"`
 				CrossWalletBalance string `json:"cw"`
 			} `json:"B"`
 			Positions []struct {
-				Symbol                    string `json:"s"`
-				PositionAmount           string `json:"pa"`
-				EntryPrice               string `json:"ep"`
-				AccumulatedRealized      string `json:"cr"`
-				UnrealizedPnl           string `json:"up"`
-				MarginType              string `json:"mt"`
-				IsolatedWallet          string `json:"iw"`
-				PositionSide            string `json:"ps"`
+				Symbol              string `json:"s"`
+				PositionAmount      string `json:"pa"`
+				EntryPrice          string `json:"ep"`
+				AccumulatedRealized string `json:"cr"`
+				UnrealizedPnl       string `json:"up"`
+				MarginType          string `json:"mt"`
+				IsolatedWallet      string `json:"iw"`
+				PositionSide        string `json:"ps"`
 			} `json:"P"`
 		} `json:"a"`
 	}
@@ -388,36 +388,36 @@ func (uds *BinanceUserDataStream) handleOrderUpdate(msg []byte) {
 		EventTime       int64  `json:"E"`
 		TransactionTime int64  `json:"T"`
 		Order           struct {
-			Symbol              string `json:"s"`
-			ClientOrderID       string `json:"c"`
-			Side                string `json:"S"`
-			OrderType           string `json:"o"`
-			TimeInForce         string `json:"f"`
-			OriginalQty         string `json:"q"`
-			OriginalPrice       string `json:"p"`
-			AveragePrice        string `json:"ap"`
-			StopPrice           string `json:"sp"`
-			ExecutionType       string `json:"x"`
-			OrderStatus         string `json:"X"`
-			OrderID             int64  `json:"i"`
-			LastFilledQty       string `json:"l"`
+			Symbol               string `json:"s"`
+			ClientOrderID        string `json:"c"`
+			Side                 string `json:"S"`
+			OrderType            string `json:"o"`
+			TimeInForce          string `json:"f"`
+			OriginalQty          string `json:"q"`
+			OriginalPrice        string `json:"p"`
+			AveragePrice         string `json:"ap"`
+			StopPrice            string `json:"sp"`
+			ExecutionType        string `json:"x"`
+			OrderStatus          string `json:"X"`
+			OrderID              int64  `json:"i"`
+			LastFilledQty        string `json:"l"`
 			FilledAccumulatedQty string `json:"z"`
-			LastFilledPrice     string `json:"L"`
-			CommissionAsset     string `json:"N"`
-			CommissionAmount    string `json:"n"`
-			OrderTradeTime      int64  `json:"T"`
-			TradeID             int64  `json:"t"`
-			BidsNotional        string `json:"b"`
-			AsksNotional        string `json:"a"`
-			IsMaker             bool   `json:"m"`
-			IsReduceOnly        bool   `json:"R"`
-			WorkingType         string `json:"wt"`
-			OriginalOrderType   string `json:"ot"`
-			PositionSide        string `json:"ps"`
-			ClosePosition       bool   `json:"cp"`
-			ActivationPrice     string `json:"AP"`
-			CallbackRate        string `json:"cr"`
-			RealizedProfit      string `json:"rp"`
+			LastFilledPrice      string `json:"L"`
+			CommissionAsset      string `json:"N"`
+			CommissionAmount     string `json:"n"`
+			OrderTradeTime       int64  `json:"T"`
+			TradeID              int64  `json:"t"`
+			BidsNotional         string `json:"b"`
+			AsksNotional         string `json:"a"`
+			IsMaker              bool   `json:"m"`
+			IsReduceOnly         bool   `json:"R"`
+			WorkingType          string `json:"wt"`
+			OriginalOrderType    string `json:"ot"`
+			PositionSide         string `json:"ps"`
+			ClosePosition        bool   `json:"cp"`
+			ActivationPrice      string `json:"AP"`
+			CallbackRate         string `json:"cr"`
+			RealizedProfit       string `json:"rp"`
 		} `json:"o"`
 	}
 
@@ -452,10 +452,18 @@ func (uds *BinanceUserDataStream) handleOrderUpdate(msg []byte) {
 	avgPrice, _ := decimal.NewFromString(order.AveragePrice)
 	commission, _ := decimal.NewFromString(order.CommissionAmount)
 
+	// Convert string side to core.OrderSide
+	var side core.OrderSide
+	if order.Side == "BUY" {
+		side = core.OrderSideBuy
+	} else if order.Side == "SELL" {
+		side = core.OrderSideSell
+	}
+
 	orderEvent := core.OrderEvent{
 		OrderID:         fmt.Sprintf("%d", order.OrderID),
 		Symbol:          order.Symbol,
-		Side:            order.Side,
+		Side:            side,
 		OrderType:       order.OrderType,
 		Status:          status,
 		Price:           price,

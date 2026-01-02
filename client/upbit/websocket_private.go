@@ -19,12 +19,12 @@ const (
 
 // UpbitPrivateWS manages private websocket connections for order and balance updates
 type UpbitPrivateWS struct {
-	client          *UpbitClient
-	wsClient        *core.WsClient
-	orderEventCh    chan core.OrderEvent     // unified order event channel
-	balanceEventCh  chan core.BalanceEvent   // unified balance event channel
-	isConnected     bool
-	connectionMu    sync.Mutex
+	client            *UpbitClient
+	wsClient          *core.WsClient
+	orderEventCh      chan core.OrderEvent   // unified order event channel
+	balanceEventCh    chan core.BalanceEvent // unified balance event channel
+	isConnected       bool
+	connectionMu      sync.Mutex
 	subscribedSymbols []string
 	subscribedAssets  []string
 	subscriptionMu    sync.RWMutex
@@ -205,11 +205,13 @@ func (pw *UpbitPrivateWS) handleBalanceUpdate(msg []byte) {
 
 // convertWsOrderToEvent converts a websocket order to core.OrderEvent
 func (pw *UpbitPrivateWS) convertWsOrderToEvent(wsOrder WsOrder) core.OrderEvent {
-	var side string
-	if wsOrder.AskBid == "bid" {
-		side = "BUY"
+	var side core.OrderSide
+	if wsOrder.AskBid == "BID" {
+		side = core.OrderSideBuy
+	} else if wsOrder.AskBid == "ASK" {
+		side = core.OrderSideSell
 	} else {
-		side = "SELL"
+		side = "" // Invalid side
 	}
 
 	return core.OrderEvent{

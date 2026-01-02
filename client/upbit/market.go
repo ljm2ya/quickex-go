@@ -42,6 +42,31 @@ func (u *UpbitClient) GetTicker(symbol string) (*UpbitTickerOfMarket, error) {
 	return &tickers[0], nil
 }
 
+func (u *UpbitClient) GetTickers(quote string) (*[]UpbitTickerOfMarket, error) {
+	// This is a public endpoint, no authentication needed
+	resp, err := http.Get(baseURL + "/v1/ticker/all?quote_currencies=" + quote)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var tickers []UpbitTickerOfMarket
+	if err := json.Unmarshal(body, &tickers); err != nil {
+		return nil, err
+	}
+
+	if len(tickers) == 0 {
+		return nil, errors.New("ticker not found")
+	}
+
+	return &tickers, nil
+}
+
 // GetMarketRules gets market rules for a quote currency
 func (u *UpbitClient) GetMarketRules(quote string) ([]UpbitMarket, error) {
 	// This is a public endpoint, no authentication needed
@@ -164,7 +189,7 @@ func (u *UpbitClient) SubscribeQuotes(ctx context.Context, symbols []string, err
 				// Check if we have orderbook data
 				if orderbook.Type == "orderbook" && len(orderbook.OrderbookUnits) > 0 {
 					bestUnit := orderbook.OrderbookUnits[0]
-					
+
 					// Create quote from orderbook data
 					quote := core.Quote{
 						Symbol:   orderbook.Code,
@@ -216,6 +241,10 @@ func (u *UpbitClient) FetchMarketRules(quotes []string) ([]core.MarketRule, erro
 		if err != nil {
 			return nil, err
 		}
+		tickers, err := u.GetTickers(quote)
+		if err != nil {
+			return nil, err
+		}
 
 		// Convert to core types
 		for _, rule := range rules {
@@ -224,13 +253,17 @@ func (u *UpbitClient) FetchMarketRules(quotes []string) ([]core.MarketRule, erro
 			// For KRW markets, fetch current price to determine tick size
 			if quote == "KRW" {
 				// Try to get current price
-				ticker, err := u.GetTicker(rule.Market)
-				if err == nil && ticker != nil {
+				var price float64
+				for _, t := range *tickers {
+					if t.Market == rule.Market {
+						price = t.TradePrice
+					}
+				}
+				if price != 0.0 {
 					// Use dynamic tick size based on current price
-					tickSize = getTickSizeByPrice(ticker.TradePrice)
+					tickSize = getTickSizeByPrice(price)
 				} else {
-					// Default to 1 KRW if can't get price
-					tickSize = decimal.NewFromInt(1)
+					panic("ticker error")
 				}
 			} else {
 				// Crypto markets (BTC, USDT) use fixed decimal precision
@@ -259,6 +292,7 @@ func (u *UpbitClient) FetchMarketRules(quotes []string) ([]core.MarketRule, erro
 				RateLimits:     []core.RateLimit{},
 			})
 		}
+		time.Sleep(time.Millisecond * 100) // for ip limit
 	}
 
 	return allRules, nil
@@ -309,17 +343,17 @@ func (u *UpbitClient) FetchQuotes(symbols []string) (map[string]core.Quote, erro
 // getTickSizeByPrice returns the tick size based on the current price according to Upbit rules
 // Based on https://docs.upbit.com/kr/docs/krw-market-info
 func getTickSizeByPrice(price float64) decimal.Decimal {
-	if price >= 2000000 {
+	if price >= 1000000 {
 		return decimal.NewFromInt(1000)
-	} else if price >= 1000000 {
-		return decimal.NewFromInt(500)
 	} else if price >= 500000 {
-		return decimal.NewFromInt(100)
+		return decimal.NewFromInt(500)
 	} else if price >= 100000 {
+		return decimal.NewFromInt(100)
+	} else if price >= 50000 {
 		return decimal.NewFromInt(50)
 	} else if price >= 10000 {
 		return decimal.NewFromInt(10)
-	} else if price >= 1000 {
+	} else if price >= 5000 {
 		return decimal.NewFromInt(5)
 	} else if price >= 100 {
 		return decimal.NewFromInt(1)
@@ -329,7 +363,15 @@ func getTickSizeByPrice(price float64) decimal.Decimal {
 		return decimal.NewFromFloat(0.01)
 	} else if price >= 0.1 {
 		return decimal.NewFromFloat(0.001)
-	} else {
+	} else if price >= 0.01 {
 		return decimal.NewFromFloat(0.0001)
+	} else if price >= 0.001 {
+		return decimal.NewFromFloat(0.00001)
+	} else if price >= 0.0001 {
+		return decimal.NewFromFloat(0.000001)
+	} else if price >= 0.00001 {
+		return decimal.NewFromFloat(0.0000001)
+	} else {
+		return decimal.NewFromFloat(0.00000001)
 	}
 }

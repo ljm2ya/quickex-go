@@ -173,10 +173,18 @@ func (b *BinanceClient) placeOrder(symbol, side, orderType string, opt *OrderOpt
 	}
 	ord := wsResp.Result
 
+	// Convert string side to core.OrderSide
+	var orderSide core.OrderSide
+	if ord.Side == "BUY" {
+		orderSide = core.OrderSideBuy
+	} else if ord.Side == "SELL" {
+		orderSide = core.OrderSideSell
+	}
+
 	resp := &core.OrderResponse{
 		OrderID:    strconv.FormatInt(ord.OrderID, 10),
 		Symbol:     ord.Symbol,
-		Side:       ord.Side,
+		Side:       orderSide,
 		Tif:        core.TimeInForce(ord.TimeInForce),
 		Status:     parseOrderStatus(ord.Status),
 		Price:      decimal.RequireFromString(ord.Price),
@@ -253,10 +261,18 @@ func parseOrderStatus(s string) core.OrderStatus {
 }
 
 func toOrderResponse(ord wsOrderTradeUpdate) *core.OrderResponse {
+	// Convert string side to core.OrderSide
+	var side core.OrderSide
+	if ord.Side == "BUY" {
+		side = core.OrderSideBuy
+	} else if ord.Side == "SELL" {
+		side = core.OrderSideSell
+	}
+
 	return &core.OrderResponse{
 		OrderID:    strconv.FormatInt(ord.OrderID, 10),
 		Symbol:     ord.Symbol,
-		Side:       ord.Side,
+		Side:       side,
 		Status:     parseOrderStatus(ord.Status),
 		Price:      decimal.RequireFromString(ord.Price),
 		Quantity:   decimal.RequireFromString(ord.OrigQty),
@@ -300,10 +316,18 @@ func (b *BinanceClient) CancelOrder(symbol, orderId string) (*core.OrderResponse
 	}
 	ord := wsResp.Result
 
+	// Convert string side to core.OrderSide
+	var orderSide core.OrderSide
+	if ord.Side == "BUY" {
+		orderSide = core.OrderSideBuy
+	} else if ord.Side == "SELL" {
+		orderSide = core.OrderSideSell
+	}
+
 	resp := &core.OrderResponse{
 		OrderID:    strconv.FormatInt(ord.OrderID, 10),
 		Symbol:     ord.Symbol,
-		Side:       ord.Side,
+		Side:       orderSide,
 		Tif:        core.TimeInForce(ord.TimeInForce),
 		Status:     parseOrderStatus(ord.Status),
 		Price:      decimal.RequireFromString(ord.Price),
@@ -345,12 +369,15 @@ func (b *BinanceClient) FetchOrder(symbol, orderId string) (*core.OrderResponseF
 	price, _ := decimal.NewFromString(ord.Price)
 	avgPrice, _ := decimal.NewFromString(ord.AvgPrice)
 	execQty, _ := decimal.NewFromString(ord.ExecutedQty)
-	var side, commAsset string
+
+	// Convert string side to core.OrderSide and determine commission asset
+	var orderSide core.OrderSide
+	var commAsset string
 	if ord.Side == "BUY" {
-		side = "buy"
+		orderSide = core.OrderSideBuy
 		commAsset = "USDT"
 	} else if ord.Side == "SELL" {
-		side = "sell"
+		orderSide = core.OrderSideSell
 		commAsset = strings.TrimSuffix(ord.Symbol, "USDT")
 	}
 
@@ -358,7 +385,7 @@ func (b *BinanceClient) FetchOrder(symbol, orderId string) (*core.OrderResponseF
 		OrderResponse: core.OrderResponse{
 			OrderID:    strconv.FormatInt(ord.OrderID, 10),
 			Symbol:     ord.Symbol,
-			Side:       side,
+			Side:       orderSide,
 			Tif:        core.TimeInForce(ord.TimeInForce),
 			Status:     parseOrderStatus(ord.Status),
 			Price:      price,
@@ -413,10 +440,18 @@ func (b *BinanceClient) modifyOrderPrice(positionSide string, symbol, orderId st
 	}
 	ord := wsResp.Result
 
+	// Convert string side to core.OrderSide
+	var orderSide core.OrderSide
+	if ord.Side == "BUY" {
+		orderSide = core.OrderSideBuy
+	} else if ord.Side == "SELL" {
+		orderSide = core.OrderSideSell
+	}
+
 	resp := &core.OrderResponse{
 		OrderID:    strconv.FormatInt(ord.OrderID, 10),
 		Symbol:     ord.Symbol,
-		Side:       ord.Side,
+		Side:       orderSide,
 		Tif:        core.TimeInForce(ord.TimeInForce),
 		Status:     parseOrderStatus(ord.Status),
 		Price:      decimal.RequireFromString(ord.Price),

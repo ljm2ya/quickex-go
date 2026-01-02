@@ -38,11 +38,11 @@ func createOrderParams(symbol, side, ordType string, identifier string) map[stri
 
 // parseOrderResponse converts UpbitOrder to core.OrderResponse
 func parseOrderResponse(order UpbitOrder, tif string) *core.OrderResponse {
-	var side string
+	var side core.OrderSide
 	if order.Side == "bid" {
-		side = "BUY"
+		side = core.OrderSideBuy
 	} else {
-		side = "SELL"
+		side = core.OrderSideSell
 	}
 
 	status := parseOrderStatus(order.State)

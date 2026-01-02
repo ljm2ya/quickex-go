@@ -41,11 +41,13 @@ type BinanceClient struct {
 	userDataStream *BinanceUserDataStream
 
 	// Real-time event subscription channels
-	orderEventCh    chan core.OrderEvent
-	balanceEventCh  chan core.BalanceEvent
-	subscriptionCtx context.Context
+	orderEventCh       chan core.OrderEvent
+	balanceEventCh     chan core.BalanceEvent
+	orderEventSymbols  []string // Filter for order events
+	balanceEventAssets []string // Filter for balance events
+	subscriptionCtx    context.Context
 	subscriptionCancel context.CancelFunc
-	subscriptionMu  sync.Mutex
+	subscriptionMu     sync.Mutex
 }
 
 func NewClient(apiKey string, prvKey ed25519.PrivateKey) *BinanceClient {
@@ -310,6 +312,10 @@ func extractErrFn() core.WsExtractErrFunc {
 
 func afterConnect(b *BinanceClient) core.WsAfterConnectFunc {
 	return func(c *core.WsClient) error {
+		err := b.userDataStream.Connect(b.Ctx)
+		if err != nil {
+			return fmt.Errorf("User data stream connect: %v", err)
+		}
 		acct, err := b.GetAccount()
 		if err != nil {
 			return fmt.Errorf("Get Account: %v", err)
@@ -380,15 +386,14 @@ func (b *BinanceClient) SubscribeOrderEvents(ctx context.Context, symbols []stri
 	b.subscriptionMu.Lock()
 	defer b.subscriptionMu.Unlock()
 
-	// Connect user data stream if not already connected
+	// Ensure user data stream is already connected (should be connected at program init)
 	if !b.userDataStream.IsConnected() {
-		if err := b.userDataStream.Connect(ctx); err != nil {
-			return nil, fmt.Errorf("failed to connect user data stream: %v", err)
-		}
+		return nil, fmt.Errorf("user data stream not connected")
 	}
 
 	if b.orderEventCh == nil {
 		b.orderEventCh = make(chan core.OrderEvent, 100)
+		b.orderEventSymbols = symbols // Store filter symbols
 		b.subscriptionCtx, b.subscriptionCancel = context.WithCancel(ctx)
 
 		// Start forwarding events from user data stream
@@ -403,15 +408,14 @@ func (b *BinanceClient) SubscribeBalanceEvents(ctx context.Context, assets []str
 	b.subscriptionMu.Lock()
 	defer b.subscriptionMu.Unlock()
 
-	// Connect user data stream if not already connected
+	// Ensure user data stream is already connected (should be connected at program init)
 	if !b.userDataStream.IsConnected() {
-		if err := b.userDataStream.Connect(ctx); err != nil {
-			return nil, fmt.Errorf("failed to connect user data stream: %v", err)
-		}
+		return nil, fmt.Errorf("user data stream not connected")
 	}
 
 	if b.balanceEventCh == nil {
 		b.balanceEventCh = make(chan core.BalanceEvent, 100)
+		b.balanceEventAssets = assets // Store filter assets
 		b.subscriptionCtx, b.subscriptionCancel = context.WithCancel(ctx)
 
 		// Start forwarding events from user data stream
@@ -476,6 +480,13 @@ func (b *BinanceClient) forwardOrderEvents(errHandler func(err error)) {
 				return
 			}
 
+			// Filter by symbols if specified
+			if len(b.orderEventSymbols) > 0 {
+				if !contains(b.orderEventSymbols, orderEvent.Symbol) {
+					continue // Skip events not matching filter
+				}
+			}
+
 			// Forward to user channel
 			select {
 			case b.orderEventCh <- orderEvent:
@@ -503,6 +514,13 @@ func (b *BinanceClient) forwardBalanceEvents(errHandler func(err error)) {
 		case balanceEvent, ok := <-wsBalanceCh:
 			if !ok {
 				return
+			}
+
+			// Filter by assets if specified
+			if len(b.balanceEventAssets) > 0 {
+				if !contains(b.balanceEventAssets, balanceEvent.Asset) {
+					continue // Skip events not matching filter
+				}
 			}
 
 			// Forward to user channel
@@ -546,10 +564,18 @@ func (b *BinanceClient) convertToOrderEvent(ord wsOrderTradeUpdate) core.OrderEv
 	executedQty, _ := decimal.NewFromString(ord.ExecutedQty)
 	lastFilledPrice, _ := decimal.NewFromString(ord.LastFilledPrice)
 
+	// Convert string side to core.OrderSide
+	var side core.OrderSide
+	if ord.Side == "BUY" {
+		side = core.OrderSideBuy
+	} else if ord.Side == "SELL" {
+		side = core.OrderSideSell
+	}
+
 	return core.OrderEvent{
 		OrderID:     strconv.FormatInt(ord.OrderID, 10),
 		Symbol:      ord.Symbol,
-		Side:        ord.Side,
+		Side:        side,
 		OrderType:   ord.OrderType,
 		Status:      status,
 		Price:       price,
@@ -559,4 +585,14 @@ func (b *BinanceClient) convertToOrderEvent(ord wsOrderTradeUpdate) core.OrderEv
 		UpdateTime:  time.Unix(0, ord.LastFilledTime*int64(time.Millisecond)),
 		TradeID:     strconv.FormatInt(ord.TradeID, 10),
 	}
+}
+
+// contains checks if a string slice contains a specific value
+func contains(slice []string, value string) bool {
+	for _, item := range slice {
+		if item == value {
+			return true
+		}
+	}
+	return false
 }

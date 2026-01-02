@@ -31,11 +31,18 @@ const (
 	TimeInForceFOK TimeInForce = "FOK" // Fill or kill
 )
 
+type OrderSide string
+
+const (
+	OrderSideBuy  OrderSide = "BUY"
+	OrderSideSell OrderSide = "SELL"
+)
+
 // OrderEvent represents real-time order updates via websocket
 type OrderEvent struct {
 	OrderID         string          `json:"order_id"`
 	Symbol          string          `json:"symbol"`
-	Side            string          `json:"side"`
+	Side            OrderSide       `json:"side"`
 	OrderType       string          `json:"order_type"`
 	Status          OrderStatus     `json:"status"`
 	Price           decimal.Decimal `json:"price"`
@@ -61,7 +68,7 @@ type BalanceEvent struct {
 type OrderResponse struct {
 	OrderID         string
 	Symbol          string
-	Side            string
+	Side            OrderSide
 	Tif             TimeInForce
 	Status          OrderStatus
 	Price           decimal.Decimal
